@@ -16,6 +16,7 @@ import numpy as np
 
 from functools import partial
 from torch.utils.tensorboard import SummaryWriter
+from monitors.metrics import write_metrics
 
 import utils
 import hydra
