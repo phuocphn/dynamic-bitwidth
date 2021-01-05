@@ -147,9 +147,9 @@ class Dynamic_conv2d(nn.Module):
         assert in_channels%groups==0
         self.in_channels = in_channels
         self.out_channels = out_channels
-        self.kernel_size = kernel_size
-        self.stride = stride
-        self.padding = padding
+        self.kernel_size = kernel_size[0]
+        self.stride = stride[0]
+        self.padding = padding[0]
         self.dilation = dilation
         self.groups = groups
         self.bias = bias
