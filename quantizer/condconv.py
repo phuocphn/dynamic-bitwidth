@@ -156,7 +156,7 @@ class Dynamic_conv2d(nn.Module):
         self.K = K
         self.attention = attention2d(in_channels, ratio, K, temperature)
 
-        self.weight = nn.Parameter(torch.randn(K, out_channels, in_channels//groups, kernel_size, kernel_size), requires_grad=True)
+        self.weight = nn.Parameter(torch.randn(K, out_channels, in_channels//groups, kernel_size[0], kernel_size[0]), requires_grad=True)
         if bias:
             self.bias = nn.Parameter(torch.Tensor(K, out_channels))
         else:
