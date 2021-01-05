@@ -7,15 +7,15 @@ import torch.nn.functional as F
 
 
 class attention1d(nn.Module):
-    def __init__(self, in_planes, ratios, K, temperature, init_weight=True):
+    def __init__(self, in_channels, ratios, K, temperature, init_weight=True):
         super(attention1d, self).__init__()
         assert temperature%3==1
         self.avgpool = nn.AdaptiveAvgPool1d(1)
-        if in_planes!=3:
-            hidden_planes = int(in_planes*ratios)+1
+        if in_channels!=3:
+            hidden_planes = int(in_channels*ratios)+1
         else:
             hidden_planes = K
-        self.fc1 = nn.Conv1d(in_planes, hidden_planes, 1, bias=False)
+        self.fc1 = nn.Conv1d(in_channels, hidden_planes, 1, bias=False)
         # self.bn = nn.BatchNorm2d(hidden_planes)
         self.fc2 = nn.Conv1d(hidden_planes, K, 1, bias=True)
         self.temperature = temperature
@@ -48,11 +48,11 @@ class attention1d(nn.Module):
 
 
 class Dynamic_conv1d(nn.Module):
-    def __init__(self, in_planes, out_planes, kernel_size, ratio=0.25, stride=1, padding=0, dilation=1, groups=1, bias=True, K=4,temperature=34, init_weight=True):
+    def __init__(self, in_channels, out_channels, kernel_size, ratio=0.25, stride=1, padding=0, dilation=1, groups=1, bias=True, K=4,temperature=34, init_weight=True):
         super(Dynamic_conv1d, self).__init__()
-        assert in_planes%groups==0
-        self.in_planes = in_planes
-        self.out_planes = out_planes
+        assert in_channels%groups==0
+        self.in_channels = in_channels
+        self.out_channels = out_channels
         self.kernel_size = kernel_size
         self.stride = stride
         self.padding = padding
@@ -60,11 +60,11 @@ class Dynamic_conv1d(nn.Module):
         self.groups = groups
         self.bias = bias
         self.K = K
-        self.attention = attention1d(in_planes, ratio, K, temperature)
+        self.attention = attention1d(in_channels, ratio, K, temperature)
 
-        self.weight = nn.Parameter(torch.randn(K, out_planes, in_planes//groups, kernel_size), requires_grad=True)
+        self.weight = nn.Parameter(torch.randn(K, out_channels, in_channels//groups, kernel_size), requires_grad=True)
         if bias:
-            self.bias = nn.Parameter(torch.Tensor(K, out_planes))
+            self.bias = nn.Parameter(torch.Tensor(K, out_channels))
         else:
             self.bias = None
         if init_weight:
@@ -81,12 +81,12 @@ class Dynamic_conv1d(nn.Module):
 
     def forward(self, x):#å°†batchè§†ä½œç»´åº¦å˜é‡ï¼Œè¿›è¡Œç»„å·ç§¯ï¼Œå› ä¸ºç»„å·ç§¯çš„æƒé‡æ˜¯ä¸åŒçš„ï¼ŒåŠ¨æ€å·ç§¯çš„æƒé‡ä¹Ÿæ˜¯ä¸åŒçš„
         softmax_attention = self.attention(x)
-        batch_size, in_planes, height = x.size()
+        batch_size, in_channels, height = x.size()
         x = x.view(1, -1, height, )# å˜åŒ–æˆä¸€ä¸ªç»´åº¦è¿›è¡Œç»„å·ç§¯
         weight = self.weight.view(self.K, -1)
 
         # åŠ¨æ€å·ç§¯çš„æƒé‡çš„ç”Ÿæˆï¼Œ ç”Ÿæˆçš„æ˜¯batch_sizeä¸ªå·ç§¯å‚æ•°ï¼ˆæ¯ä¸ªå‚æ•°ä¸åŒï¼‰
-        aggregate_weight = torch.mm(softmax_attention, weight).view(-1, self.in_planes, self.kernel_size,)
+        aggregate_weight = torch.mm(softmax_attention, weight).view(-1, self.in_channels, self.kernel_size,)
         if self.bias is not None:
             aggregate_bias = torch.mm(softmax_attention, self.bias).view(-1)
             output = F.conv1d(x, weight=aggregate_weight, bias=aggregate_bias, stride=self.stride, padding=self.padding,
@@ -95,21 +95,21 @@ class Dynamic_conv1d(nn.Module):
             output = F.conv1d(x, weight=aggregate_weight, bias=None, stride=self.stride, padding=self.padding,
                               dilation=self.dilation, groups=self.groups * batch_size)
 
-        output = output.view(batch_size, self.out_planes, output.size(-1))
+        output = output.view(batch_size, self.out_channels, output.size(-1))
         return output
 
 
 
 class attention2d(nn.Module):
-    def __init__(self, in_planes, ratios, K, temperature, init_weight=True):
+    def __init__(self, in_channels, ratios, K, temperature, init_weight=True):
         super(attention2d, self).__init__()
         assert temperature%3==1
         self.avgpool = nn.AdaptiveAvgPool2d(1)
-        if in_planes!=3:
-            hidden_planes = int(in_planes*ratios)+1
+        if in_channels!=3:
+            hidden_planes = int(in_channels*ratios)+1
         else:
             hidden_planes = K
-        self.fc1 = nn.Conv2d(in_planes, hidden_planes, 1, bias=False)
+        self.fc1 = nn.Conv2d(in_channels, hidden_planes, 1, bias=False)
         # self.bn = nn.BatchNorm2d(hidden_planes)
         self.fc2 = nn.Conv2d(hidden_planes, K, 1, bias=True)
         self.temperature = temperature
@@ -142,11 +142,11 @@ class attention2d(nn.Module):
 
 
 class Dynamic_conv2d(nn.Module):
-    def __init__(self, in_planes, out_planes, kernel_size, ratio=0.25, stride=1, padding=0, dilation=1, groups=1, bias=True, K=4,temperature=34, init_weight=True):
+    def __init__(self, in_channels, out_channels, kernel_size, ratio=0.25, stride=1, padding=0, dilation=1, groups=1, bias=True, K=4,temperature=34, init_weight=True):
         super(Dynamic_conv2d, self).__init__()
-        assert in_planes%groups==0
-        self.in_planes = in_planes
-        self.out_planes = out_planes
+        assert in_channels%groups==0
+        self.in_channels = in_channels
+        self.out_channels = out_channels
         self.kernel_size = kernel_size
         self.stride = stride
         self.padding = padding
@@ -154,11 +154,11 @@ class Dynamic_conv2d(nn.Module):
         self.groups = groups
         self.bias = bias
         self.K = K
-        self.attention = attention2d(in_planes, ratio, K, temperature)
+        self.attention = attention2d(in_channels, ratio, K, temperature)
 
-        self.weight = nn.Parameter(torch.randn(K, out_planes, in_planes//groups, kernel_size, kernel_size), requires_grad=True)
+        self.weight = nn.Parameter(torch.randn(K, out_channels, in_channels//groups, kernel_size, kernel_size), requires_grad=True)
         if bias:
-            self.bias = nn.Parameter(torch.Tensor(K, out_planes))
+            self.bias = nn.Parameter(torch.Tensor(K, out_channels))
         else:
             self.bias = None
         if init_weight:
@@ -175,12 +175,12 @@ class Dynamic_conv2d(nn.Module):
 
     def forward(self, x):#å°†batchè§†ä½œç»´åº¦å˜é‡ï¼Œè¿›è¡Œç»„å·ç§¯ï¼Œå› ä¸ºç»„å·ç§¯çš„æƒé‡æ˜¯ä¸åŒçš„ï¼ŒåŠ¨æ€å·ç§¯çš„æƒé‡ä¹Ÿæ˜¯ä¸åŒçš„
         softmax_attention = self.attention(x)
-        batch_size, in_planes, height, width = x.size()
+        batch_size, in_channels, height, width = x.size()
         x = x.view(1, -1, height, width)# å˜åŒ–æˆä¸€ä¸ªç»´åº¦è¿›è¡Œç»„å·ç§¯
         weight = self.weight.view(self.K, -1)
 
         # åŠ¨æ€å·ç§¯çš„æƒé‡çš„ç”Ÿæˆï¼Œ ç”Ÿæˆçš„æ˜¯batch_sizeä¸ªå·ç§¯å‚æ•°ï¼ˆæ¯ä¸ªå‚æ•°ä¸åŒï¼‰
-        aggregate_weight = torch.mm(softmax_attention, weight).view(-1, self.in_planes, self.kernel_size, self.kernel_size)
+        aggregate_weight = torch.mm(softmax_attention, weight).view(-1, self.in_channels, self.kernel_size, self.kernel_size)
         if self.bias is not None:
             aggregate_bias = torch.mm(softmax_attention, self.bias).view(-1)
             output = F.conv2d(x, weight=aggregate_weight, bias=aggregate_bias, stride=self.stride, padding=self.padding,
@@ -189,20 +189,20 @@ class Dynamic_conv2d(nn.Module):
             output = F.conv2d(x, weight=aggregate_weight, bias=None, stride=self.stride, padding=self.padding,
                               dilation=self.dilation, groups=self.groups * batch_size)
 
-        output = output.view(batch_size, self.out_planes, output.size(-2), output.size(-1))
+        output = output.view(batch_size, self.out_channels, output.size(-2), output.size(-1))
         return output
 
 
 class attention3d(nn.Module):
-    def __init__(self, in_planes, ratios, K, temperature):
+    def __init__(self, in_channels, ratios, K, temperature):
         super(attention3d, self).__init__()
         assert temperature%3==1
         self.avgpool = nn.AdaptiveAvgPool3d(1)
-        if in_planes != 3:
-            hidden_planes = int(in_planes * ratios)+1
+        if in_channels != 3:
+            hidden_planes = int(in_channels * ratios)+1
         else:
             hidden_planes = K
-        self.fc1 = nn.Conv3d(in_planes, hidden_planes, 1, bias=False)
+        self.fc1 = nn.Conv3d(in_channels, hidden_planes, 1, bias=False)
         self.fc2 = nn.Conv3d(hidden_planes, K, 1, bias=False)
         self.temperature = temperature
 
@@ -219,11 +219,11 @@ class attention3d(nn.Module):
         return F.softmax(x / self.temperature, 1)
 
 class Dynamic_conv3d(nn.Module):
-    def __init__(self, in_planes, out_planes, kernel_size, ratio=0.25, stride=1, padding=0, dilation=1, groups=1, bias=True, K=4, temperature=34):
+    def __init__(self, in_channels, out_channels, kernel_size, ratio=0.25, stride=1, padding=0, dilation=1, groups=1, bias=True, K=4, temperature=34):
         super(Dynamic_conv3d, self).__init__()
-        assert in_planes%groups==0
-        self.in_planes = in_planes
-        self.out_planes = out_planes
+        assert in_channels%groups==0
+        self.in_channels = in_channels
+        self.out_channels = out_channels
         self.kernel_size = kernel_size
         self.stride = stride
         self.padding = padding
@@ -231,11 +231,11 @@ class Dynamic_conv3d(nn.Module):
         self.groups = groups
         self.bias = bias
         self.K = K
-        self.attention = attention3d(in_planes, ratio, K, temperature)
+        self.attention = attention3d(in_channels, ratio, K, temperature)
 
-        self.weight = nn.Parameter(torch.randn(K, out_planes, in_planes//groups, kernel_size, kernel_size, kernel_size), requires_grad=True)
+        self.weight = nn.Parameter(torch.randn(K, out_channels, in_channels//groups, kernel_size, kernel_size, kernel_size), requires_grad=True)
         if bias:
-            self.bias = nn.Parameter(torch.Tensor(K, out_planes))
+            self.bias = nn.Parameter(torch.Tensor(K, out_channels))
         else:
             self.bias = None
 
@@ -248,12 +248,12 @@ class Dynamic_conv3d(nn.Module):
 
     def forward(self, x):#å°†batchè§†ä½œç»´åº¦å˜é‡ï¼Œè¿›è¡Œç»„å·ç§¯ï¼Œå› ä¸ºç»„å·ç§¯çš„æƒé‡æ˜¯ä¸åŒçš„ï¼ŒåŠ¨æ€å·ç§¯çš„æƒé‡ä¹Ÿæ˜¯ä¸åŒçš„
         softmax_attention = self.attention(x)
-        batch_size, in_planes, depth, height, width = x.size()
+        batch_size, in_channels, depth, height, width = x.size()
         x = x.view(1, -1, depth, height, width)# å˜åŒ–æˆä¸€ä¸ªç»´åº¦è¿›è¡Œç»„å·ç§¯
         weight = self.weight.view(self.K, -1)
 
         # åŠ¨æ€å·ç§¯çš„æƒé‡çš„ç”Ÿæˆï¼Œ ç”Ÿæˆçš„æ˜¯batch_sizeä¸ªå·ç§¯å‚æ•°ï¼ˆæ¯ä¸ªå‚æ•°ä¸åŒï¼‰
-        aggregate_weight = torch.mm(softmax_attention, weight).view(-1, self.in_planes, self.kernel_size, self.kernel_size, self.kernel_size)
+        aggregate_weight = torch.mm(softmax_attention, weight).view(-1, self.in_channels, self.kernel_size, self.kernel_size, self.kernel_size)
         if self.bias is not None:
             aggregate_bias = torch.mm(softmax_attention, self.bias).view(-1)
             output = F.conv3d(x, weight=aggregate_weight, bias=aggregate_bias, stride=self.stride, padding=self.padding,
@@ -262,5 +262,5 @@ class Dynamic_conv3d(nn.Module):
             output = F.conv3d(x, weight=aggregate_weight, bias=None, stride=self.stride, padding=self.padding,
                               dilation=self.dilation, groups=self.groups * batch_size)
 
-        output = output.view(batch_size, self.out_planes, output.size(-3), output.size(-2), output.size(-1))
+        output = output.view(batch_size, self.out_channels, output.size(-3), output.size(-2), output.size(-1))
         return output
