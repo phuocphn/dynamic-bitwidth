@@ -50,7 +50,7 @@ def tweak_network(net, bit, arch, train_conf, quant_mode):
     train_mode, train_scheme = train_conf.split(".")
     assert bit > 1
 
-    if train_mode.startswith("quan"):
+    if train_mode.startswith("quan") or train_mode.startswith("mod"):
         if train_scheme == "standard_uniq":
             from quantizer.standard_uniq import UniQConv2d, UniQInputConv2d, UniQLinear
             input_conv_layer = UniQInputConv2d
@@ -72,7 +72,7 @@ def tweak_network(net, bit, arch, train_conf, quant_mode):
             replacement_dict = { nn.Conv2d: Dynamic_conv2d, }
             exception_dict = { '__first__': nn.Conv2d,  }         
 
-            
+
         # if arch == "glouncv-mobilenetv2_w1":
         #     exception_dict['__last__'] = partial(conv_layer, bit=8)
         net = utils.replace_module(net,
