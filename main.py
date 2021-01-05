@@ -56,16 +56,15 @@ def tweak_network(net, bit, arch, train_conf, quant_mode):
             input_conv_layer = UniQInputConv2d
             conv_layer = UniQConv2d
             linear_layer = UniQLinear
-
-
-        replacement_dict = {
-            nn.Conv2d: partial(conv_layer, bit=bit, quant_mode=quant_mode),
-            nn.Linear: partial(linear_layer, bit=bit, quant_mode=quant_mode)
-        }
-        exception_dict = {
-            '__first__': partial(input_conv_layer, bit=8),
-            '__last__': partial(linear_layer, bit=8),
-        }
+            replacement_dict = {
+                nn.Conv2d: partial(conv_layer, bit=bit, quant_mode=quant_mode),
+                nn.Linear: partial(linear_layer, bit=bit, quant_mode=quant_mode)
+            }
+            exception_dict = {
+                '__first__': partial(input_conv_layer, bit=8),
+                '__last__': partial(linear_layer, bit=8),
+            }
+            
 
         if train_scheme == "condconv":
             from quantizer.condconv import Dynamic_conv2d
