@@ -73,6 +73,18 @@ def tweak_network(net, bit, arch, train_conf, quant_mode):
                                    replacement_dict=replacement_dict,
                                    exception_dict=exception_dict,
                                    arch=arch)
+
+        if train_scheme == "condconv":
+            from quantizer.condconv import Dynamic_conv2d
+            conv_layer = UniQConv2d
+            replacement_dict = { nn.Conv2d: partial(conv_layer, bit=bit, quant_mode=quant_mode), }
+            exception_dict = { '__first__': nn.Conv2d,  }            
+            net = utils.replace_module(net,
+                                       replacement_dict=replacement_dict,
+                                       exception_dict=exception_dict,
+                                       arch=arch)
+
+
     return net
 
 
