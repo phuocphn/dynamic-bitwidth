@@ -73,7 +73,7 @@ def tweak_network(net, bit, arch, train_conf, quant_mode):
                                    replacement_dict=replacement_dict,
                                    exception_dict=exception_dict,
                                    arch=arch)
-        return net
+    return net
 
 
 def load_checkpoint(net, init_from):
