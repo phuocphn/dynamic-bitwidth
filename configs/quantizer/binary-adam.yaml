@@ -1,0 +1,10 @@
+# @package _group_
+name: binary-quantizer
+bit: 1
+lr: 0.01
+warmup_lr: 0.001
+wd: 0
+optimizer: adam
+enable_warmup: true
+lr_scheduler: cos
+

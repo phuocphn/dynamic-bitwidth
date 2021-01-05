@@ -1,0 +1,8 @@
+# @package _group_
+name: lowbit-quantizer
+bit: 4
+lr: 0.01
+wd: 5e-4
+optimizer: sgd
+enable_warmup: false
+lr_scheduler: cos

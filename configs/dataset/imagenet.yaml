@@ -1,0 +1,8 @@
+# @package _group_
+name: imagenet
+data_root: /soc_local/data/pytorch/imagenet/
+arch: presnet18
+batch_size: 256
+init_from: None
+epochs: 90
+num_calibration_batches: 1000

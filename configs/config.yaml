@@ -1,0 +1,19 @@
+defaults:
+  - dataset: cifar100
+  - quantizer: binary-sgd
+
+
+train_id: Experiment_0
+train_conf: quan-standard_uniq
+quant_mode: layer_wise
+output_dir: outputs
+
+# log print frequency
+print_freq: 10
+
+# evaluate model on validation set only.
+evaluate: False
+
+hydra:
+  run:
+    dir: /tmp
