@@ -9,7 +9,7 @@ Reference:
 import torch
 import torch.nn as nn
 import math
-
+from quantizer.condconv import Dynamic_conv2d
 
 def conv3x3(in_planes, out_planes, stride=1):
     " 3x3 convolution with padding "
@@ -232,6 +232,11 @@ class PreAct_ResNet_Cifar(nn.Module):
             elif isinstance(m, nn.BatchNorm2d):
                 m.weight.data.fill_(1)
                 m.bias.data.zero_()
+
+    def update_temperature(self):
+        for m in self.modules():
+            if isinstance(m, Dynamic_conv2d):
+                m.update_temperature()
 
     def _make_layer(self, block, planes, blocks, stride=1):
         downsample = None

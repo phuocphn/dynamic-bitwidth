@@ -76,15 +76,12 @@ def tweak_network(net, bit, arch, train_conf, quant_mode):
 
         if train_scheme == "condconv":
             from quantizer.condconv import Dynamic_conv2d
-            conv_layer = UniQConv2d
-            replacement_dict = { nn.Conv2d: partial(conv_layer, bit=bit, quant_mode=quant_mode), }
+            replacement_dict = { nn.Conv2d: Dynamic_conv2d, }
             exception_dict = { '__first__': nn.Conv2d,  }            
             net = utils.replace_module(net,
                                        replacement_dict=replacement_dict,
                                        exception_dict=exception_dict,
                                        arch=arch)
-
-
     return net
 
 
@@ -133,6 +130,8 @@ def train(net, optimizer, trainloader, criterion, epoch, print_freq=10, cfg=None
             print ("[Train] Epoch=", epoch,  " BatchID=", batch_idx, 'Loss: %.3f | Acc: %.3f%% (%d/%d)'  \
                     % (train_loss/(batch_idx+1), 100.*correct/total, correct, total))
 
+    if cfg.enable_condconv:
+        net.module.update_temperature()
     return (train_loss / batch_idx, correct / total)
 
 
