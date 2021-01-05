@@ -299,7 +299,7 @@ def main(cfg: DictConfig) -> None:
         write_metrics(writer, epoch, net,  \
                     optimizer, train_loss, train_acc1, test_loss, test_acc1, prefix="Standard_Training")
 
-
+    print('Best accuracy: ', best_acc)
 
 
 if __name__ == "__main__":
