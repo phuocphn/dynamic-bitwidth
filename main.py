@@ -67,21 +67,21 @@ def tweak_network(net, bit, arch, train_conf, quant_mode):
             '__last__': partial(linear_layer, bit=8),
         }
 
-        if arch == "glouncv-mobilenetv2_w1":
-            exception_dict['__last__'] = partial(conv_layer, bit=8)
+        if train_scheme == "condconv":
+            from quantizer.condconv import Dynamic_conv2d
+            replacement_dict = { nn.Conv2d: Dynamic_conv2d, }
+            exception_dict = { '__first__': nn.Conv2d,  }         
+
+            
+        # if arch == "glouncv-mobilenetv2_w1":
+        #     exception_dict['__last__'] = partial(conv_layer, bit=8)
         net = utils.replace_module(net,
                                    replacement_dict=replacement_dict,
                                    exception_dict=exception_dict,
                                    arch=arch)
 
-        if train_scheme == "condconv":
-            from quantizer.condconv import Dynamic_conv2d
-            replacement_dict = { nn.Conv2d: Dynamic_conv2d, }
-            exception_dict = { '__first__': nn.Conv2d,  }            
-            net = utils.replace_module(net,
-                                       replacement_dict=replacement_dict,
-                                       exception_dict=exception_dict,
-                                       arch=arch)
+   
+
     return net
 
 
