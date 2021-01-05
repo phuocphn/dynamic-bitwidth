@@ -69,7 +69,8 @@ def tweak_network(net, bit, arch, train_conf, quant_mode):
         if train_scheme == "condconv":
             from quantizer.condconv import Dynamic_conv2d
             replacement_dict = { nn.Conv2d: Dynamic_conv2d, }
-            exception_dict = { '__first__': nn.Conv2d,  '__last__': nn.Linear,}         
+            exception_dict = {}
+            # exception_dict = { '__first__': nn.Conv2d,  '__last__': nn.Linear,}         
 
 
         # if arch == "glouncv-mobilenetv2_w1":
@@ -79,7 +80,12 @@ def tweak_network(net, bit, arch, train_conf, quant_mode):
                                    exception_dict=exception_dict,
                                    arch=arch)
 
-   
+        if train_scheme == "condconv":
+            m = net.conv1
+            net.conv1 = nn.Conv2d(in_channels=m.in_channels, 
+                out_channels=m.out_channels, kernel_size=m.kernel_size, 
+                stride=m.stride, padding=m.padding, dilation=m.dilation, 
+                groups=m.groups, bias=(m.bias!=None))
 
     return net
 
