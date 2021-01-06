@@ -98,7 +98,25 @@ class Dynamic_conv1d(nn.Module):
         output = output.view(batch_size, self.out_channels, output.size(-1))
         return output
 
+class WTA(torch.autograd.Function):
+    @staticmethod
+    def forward(ctx, input):
+        ctx.save_for_backward(input)
+        return torch.nn.functional.one_hot(torch.argmax(input, dim=1))
 
+    @staticmethod
+    def backward(ctx, grad_output):
+        """
+        In the backward pass we receive a Tensor containing the gradient of the loss
+        with respect to the output, and we need to compute the gradient of the loss
+        with respect to the input.
+        """
+        input, = ctx.saved_tensors
+        softmax_out = torch.nn.functional.softmax(input, dim=1) 
+        softmax_deriv = softmax_out * (1- softmax_out)
+        grad_input = grad_output.clone()
+        grad_input = grad_input * softmax_deriv
+        return grad_input
 
 class attention2d(nn.Module):
     def __init__(self, in_channels, ratios, K, temperature, init_weight=True):
@@ -113,6 +131,7 @@ class attention2d(nn.Module):
         # self.bn = nn.BatchNorm2d(hidden_planes)
         self.fc2 = nn.Conv2d(hidden_planes, K, 1, bias=True)
         self.temperature = temperature
+        self.wta = WTA.apply
         if init_weight:
             self._initialize_weights()
 
@@ -138,7 +157,9 @@ class attention2d(nn.Module):
         x = self.fc1(x)
         x = F.relu(x)
         x = self.fc2(x).view(x.size(0), -1)
-        return F.softmax(x/self.temperature, 1)
+        # return F.softmax(x/self.temperature, 1)
+        # return torch.nn.functional.one_hot(torch.argmax(x, dim=1))
+        return self.wta(x)
 
 
 class Dynamic_conv2d(nn.Module):
