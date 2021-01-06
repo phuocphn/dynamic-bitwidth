@@ -118,6 +118,11 @@ class WTA(torch.autograd.Function):
         grad_input = grad_input * softmax_deriv
         return grad_input
 
+def gradient_approximation(x, temperature):
+    y = torch.nn.functional.one_hot(torch.argmax(x, dim=1), num_classes=x.size(1)) * 1.0
+    y_grad  = F.softmax(x/temperature, 1)
+    return (y- y_grad).detach() + y_grad
+
 class attention2d(nn.Module):
     def __init__(self, in_channels, ratios, K, temperature, init_weight=True):
         super(attention2d, self).__init__()
@@ -159,7 +164,8 @@ class attention2d(nn.Module):
         x = self.fc2(x).view(x.size(0), -1)
         # return F.softmax(x/self.temperature, 1)
         # return torch.nn.functional.one_hot(torch.argmax(x, dim=1))
-        return self.wta(x)
+        # return self.wta(x)
+        return gradient_approximation(x, self.temperature)
 
 
 class Dynamic_conv2d(nn.Module):
