@@ -102,7 +102,7 @@ class WTA(torch.autograd.Function):
     @staticmethod
     def forward(ctx, input):
         ctx.save_for_backward(input)
-        return torch.nn.functional.one_hot(torch.argmax(input, dim=1))
+        return torch.nn.functional.one_hot(torch.argmax(input, dim=1), num_classes=input.size(1)) * 1.0
 
     @staticmethod
     def backward(ctx, grad_output):
