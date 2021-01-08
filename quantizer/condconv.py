@@ -98,25 +98,25 @@ class Dynamic_conv1d(nn.Module):
         output = output.view(batch_size, self.out_channels, output.size(-1))
         return output
 
-class WTA(torch.autograd.Function):
-    @staticmethod
-    def forward(ctx, input):
-        ctx.save_for_backward(input)
-        return torch.nn.functional.one_hot(torch.argmax(input, dim=1), num_classes=input.size(1)) * 1.0
+# class WTA(torch.autograd.Function):
+#     @staticmethod
+#     def forward(ctx, input):
+#         ctx.save_for_backward(input)
+#         return torch.nn.functional.one_hot(torch.argmax(input, dim=1), num_classes=input.size(1)) * 1.0
 
-    @staticmethod
-    def backward(ctx, grad_output):
-        """
-        In the backward pass we receive a Tensor containing the gradient of the loss
-        with respect to the output, and we need to compute the gradient of the loss
-        with respect to the input.
-        """
-        input, = ctx.saved_tensors
-        softmax_out = torch.nn.functional.softmax(input, dim=1) 
-        softmax_deriv = softmax_out * (1- softmax_out)
-        grad_input = grad_output.clone()
-        grad_input = grad_input * softmax_deriv
-        return grad_input
+#     @staticmethod
+#     def backward(ctx, grad_output):
+#         """
+#         In the backward pass we receive a Tensor containing the gradient of the loss
+#         with respect to the output, and we need to compute the gradient of the loss
+#         with respect to the input.
+#         """
+#         input, = ctx.saved_tensors
+#         softmax_out = torch.nn.functional.softmax(input, dim=1) 
+#         softmax_deriv = softmax_out * (1- softmax_out)
+#         grad_input = grad_output.clone()
+#         grad_input = grad_input * softmax_deriv
+#         return grad_input
 
 def gradient_approximation(x, temperature):
     y = torch.nn.functional.one_hot(torch.argmax(x, dim=1), num_classes=x.size(1)) * 1.0
@@ -136,7 +136,7 @@ class attention2d(nn.Module):
         # self.bn = nn.BatchNorm2d(hidden_planes)
         self.fc2 = nn.Conv2d(hidden_planes, K, 1, bias=True)
         self.temperature = temperature
-        self.wta = WTA.apply
+        # self.wta = WTA.apply
         if init_weight:
             self._initialize_weights()
 

@@ -46,7 +46,7 @@ def setup_network(dataset, arch):
     return net
 
 
-def tweak_network(net, bit, arch, train_conf, quant_mode):
+def tweak_network(net, bit, arch, train_conf, quant_mode, cfg):
     train_mode, train_scheme = train_conf.split(".")
     assert bit > 1
 
@@ -68,7 +68,7 @@ def tweak_network(net, bit, arch, train_conf, quant_mode):
 
         if train_scheme == "condconv":
             from quantizer.condconv import Dynamic_conv2d
-            replacement_dict = { nn.Conv2d: Dynamic_conv2d, }
+            replacement_dict = { nn.Conv2d: partial(Dynamic_conv2d, K=cfg.K)}
             exception_dict = {}
             # exception_dict = { '__first__': nn.Conv2d,  '__last__': nn.Linear,}         
 
@@ -234,7 +234,8 @@ def main(cfg: DictConfig) -> None:
                         bit=cfg.quantizer.bit,
                         train_conf=cfg.train_conf,
                         quant_mode=cfg.quant_mode,
-                        arch=cfg.dataset.arch)
+                        arch=cfg.dataset.arch,
+                        cfg=cfg)
     net = net.to(device)
 
     if device == 'cuda':
