@@ -46,33 +46,47 @@ def setup_network(dataset, arch):
     return net
 
 
-def tweak_network(net, bit, arch, train_conf, quant_mode):
+def tweak_network(net, bit, arch, train_conf, quant_mode, cfg):
     train_mode, train_scheme = train_conf.split(".")
     assert bit > 1
 
-    if train_mode.startswith("quan"):
+    if train_mode.startswith("quan") or train_mode.startswith("mod"):
         if train_scheme == "standard_uniq":
             from quantizer.standard_uniq import UniQConv2d, UniQInputConv2d, UniQLinear
             input_conv_layer = UniQInputConv2d
             conv_layer = UniQConv2d
             linear_layer = UniQLinear
+            replacement_dict = {
+                nn.Conv2d: partial(conv_layer, bit=bit, quant_mode=quant_mode),
+                nn.Linear: partial(linear_layer, bit=bit, quant_mode=quant_mode)
+            }
+            exception_dict = {
+                '__first__': partial(input_conv_layer, bit=8),
+                '__last__': partial(linear_layer, bit=8),
+            }
 
 
-        replacement_dict = {
-            nn.Conv2d: partial(conv_layer, bit=bit, quant_mode=quant_mode),
-            nn.Linear: partial(linear_layer, bit=bit, quant_mode=quant_mode)
-        }
-        exception_dict = {
-            '__first__': partial(input_conv_layer, bit=8),
-            '__last__': partial(linear_layer, bit=8),
-        }
+        if train_scheme == "condconv":
+            from quantizer.condconv import Dynamic_conv2d
+            replacement_dict = { nn.Conv2d: partial(Dynamic_conv2d, K=cfg.K)}
+            exception_dict = {}
+            # exception_dict = { '__first__': nn.Conv2d,  '__last__': nn.Linear,}         
 
-        if arch == "glouncv-mobilenetv2_w1":
-            exception_dict['__last__'] = partial(conv_layer, bit=8)
+
+        # if arch == "glouncv-mobilenetv2_w1":
+        #     exception_dict['__last__'] = partial(conv_layer, bit=8)
         net = utils.replace_module(net,
                                    replacement_dict=replacement_dict,
                                    exception_dict=exception_dict,
                                    arch=arch)
+
+        if train_scheme == "condconv":
+            m = net.conv1
+            net.conv1 = nn.Conv2d(in_channels=m.in_channels, 
+                out_channels=m.out_channels, kernel_size=m.kernel_size, 
+                stride=m.stride, padding=m.padding, dilation=m.dilation, 
+                groups=m.groups, bias=(m.bias!=None))
+
     return net
 
 
@@ -121,6 +135,8 @@ def train(net, optimizer, trainloader, criterion, epoch, print_freq=10, cfg=None
             print ("[Train] Epoch=", epoch,  " BatchID=", batch_idx, 'Loss: %.3f | Acc: %.3f%% (%d/%d)'  \
                     % (train_loss/(batch_idx+1), 100.*correct/total, correct, total))
 
+    if hasattr(cfg, 'enable_condconv') and cfg.enable_condconv:
+        net.module.update_temperature()
     return (train_loss / batch_idx, correct / total)
 
 
@@ -218,7 +234,8 @@ def main(cfg: DictConfig) -> None:
                         bit=cfg.quantizer.bit,
                         train_conf=cfg.train_conf,
                         quant_mode=cfg.quant_mode,
-                        arch=cfg.dataset.arch)
+                        arch=cfg.dataset.arch,
+                        cfg=cfg)
     net = net.to(device)
 
     if device == 'cuda':

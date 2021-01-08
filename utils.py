@@ -189,8 +189,11 @@ def replace_module(model, replacement_dict={}, exception_dict={}, arch="presnet1
     model = replace_all(model, replacement_dict=replacement_dict)
 
     if arch == "presnet32":
-        model.conv1 = replace_single_module(new_cls=exception_dict['__first__'], current_module=model.conv1)
-        model.fc = replace_single_module(new_cls=exception_dict['__last__'], current_module=model.fc)
+        if "__first__" in exception_dict:
+            model.conv1 = replace_single_module(new_cls=exception_dict['__first__'], current_module=model.conv1)
+        
+        if "__last__" in exception_dict:
+            model.fc = replace_single_module(new_cls=exception_dict['__last__'], current_module=model.fc)
 
         if "__downsampling__" in exception_dict.keys():
             new_conv_cls = exception_dict['__downsampling__']
