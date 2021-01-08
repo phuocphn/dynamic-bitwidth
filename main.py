@@ -135,7 +135,7 @@ def train(net, optimizer, trainloader, criterion, epoch, print_freq=10, cfg=None
             print ("[Train] Epoch=", epoch,  " BatchID=", batch_idx, 'Loss: %.3f | Acc: %.3f%% (%d/%d)'  \
                     % (train_loss/(batch_idx+1), 100.*correct/total, correct, total))
 
-    if cfg.enable_condconv:
+    if hasattr(cfg, 'enable_condconv') and cfg.enable_condconv:
         net.module.update_temperature()
     return (train_loss / batch_idx, correct / total)
 
