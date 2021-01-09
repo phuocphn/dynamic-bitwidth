@@ -186,7 +186,7 @@ class LSQQuantizer(torch.nn.Module):
 
     def forward(self, x):
         if self.training and self.init_state == 0:
-            self.alpha.data.copy_( (2 * x.detach().abs(dim=1).mean(dim=1) / math.sqrt(self.Qp)).view(self.K, 1) )             
+            self.alpha.data.copy_( (2 * x.detach().abs().mean(dim=1) / math.sqrt(self.Qp)).view(self.K, 1) )             
             self.init_state.fill_(1)
             print (self.__class__.__name__, "Initializing step-size value ...")
         

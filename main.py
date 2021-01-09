@@ -67,7 +67,7 @@ def tweak_network(net, bit, arch, train_conf, quant_mode, cfg):
 
 
         if train_scheme == "condconv":
-            from quantizer.condlsq import Dynamic_conv2d
+            from quantizer.condconv import Dynamic_conv2d
             replacement_dict = { nn.Conv2d: partial(Dynamic_conv2d, K=cfg.K)}
             exception_dict = {}
 
