@@ -167,6 +167,22 @@ class attention2d(nn.Module):
         # return self.wta(x)
         return gradient_approximation(x, self.temperature)
 
+
+
+def grad_scale(x, scale):
+    y = x
+    y_grad = x * scale
+    return (y - y_grad).detach() + y_grad
+
+
+def round_pass(x):
+    y = x.round()
+    y_grad = x
+    return (y - y_grad).detach() + y_grad
+
+
+
+
 class LSQQuantizer(torch.nn.Module):
     def __init__(self, bit, K, is_activation=False):
         super(LSQQuantizer,self).__init__()
