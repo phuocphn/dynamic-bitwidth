@@ -191,14 +191,32 @@ class LSQQuantizer(torch.nn.Module):
         self.bit = bit
         self.K = K
         self.is_activation = is_activation
-        self.register_buffer('init_state', torch.zeros(1))        
-        
+        self.register_buffer('init_state', torch.zeros(1))
+        self.register_buffer('bit_attention', torch.zeros(K))        
+
+        self.register_buffer('Qn', torch.ones(K))        
+        self.register_buffer('Qp', torch.ones(K))        
+
+                
+        # if is_activation:
+        #     self.Qn = 0
+        #     self.Qp = 2 ** self.bit - 1
+        # else:
+        #     self.Qn = -2 ** (self.bit - 1)
+        #     self.Qp = 2 ** (self.bit - 1) - 1
+
+    def switch_bitwidth(self, attention):
+        argmax = attention.argmax(dim=1)
+        self.bit_attention.data.fill_(argmax + 2)
+
         if is_activation:
-            self.Qn = 0
-            self.Qp = 2 ** self.bit - 1
+            self.Qn.data.fill_(tensor.zeros(self.K))
+            self.Qp.data.fill_(2 ** self.bit_attention - 1)
         else:
-            self.Qn = -2 ** (self.bit - 1)
-            self.Qp = 2 ** (self.bit - 1) - 1
+            self.Qn.data.fill_(-2 ** (self.bit_attention - 1))
+            self.Qp.data.fill_( 2 ** (self.bit_attention - 1) - 1)
+
+
 
     def forward(self, x):
         if self.training and self.init_state == 0:
@@ -251,6 +269,8 @@ class Dynamic_LSQConv2d(nn.Module):
         batch_size, in_channels, height, width = x.size()
         x = x.view(1, -1, height, width)# å˜åŒ–æˆä¸€ä¸ªç»´åº¦è¿›è¡Œç»„å·ç§¯
         weight = self.weight.view(self.K, -1)
+
+        self.lsq_fn.switch_bitwidth(softmax_attention)
         weight = self.lsq_fn(weight)
         # åŠ¨æ€å·ç§¯çš„æƒé‡çš„ç”Ÿæˆï¼Œ ç”Ÿæˆçš„æ˜¯batch_sizeä¸ªå·ç§¯å‚æ•°ï¼ˆæ¯ä¸ªå‚æ•°ä¸åŒï¼‰
 
