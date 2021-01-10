@@ -207,15 +207,14 @@ class LSQQuantizer(torch.nn.Module):
 
     def switch_bitwidth(self, attention):
         argmax = attention.argmax(dim=1)
-        self.bit_attention.data.fill_(argmax + 2)
+        self.bit_attention.data.copy_(argmax + 2)
 
         if is_activation:
-            self.Qn.data.fill_(tensor.zeros(self.K))
-            self.Qp.data.fill_(2 ** self.bit_attention - 1)
+            self.Qn.data.copy_(tensor.zeros(self.K))
+            self.Qp.data.copy_(2 ** self.bit_attention - 1)
         else:
-            self.Qn.data.fill_(-2 ** (self.bit_attention - 1))
-            self.Qp.data.fill_( 2 ** (self.bit_attention - 1) - 1)
-
+            self.Qn.data.copy_(-2 ** (self.bit_attention - 1))
+            self.Qp.data.copy_( 2 ** (self.bit_attention - 1) - 1)
 
 
     def forward(self, x):
