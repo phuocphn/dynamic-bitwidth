@@ -160,7 +160,7 @@ def train(net, optimizer, trainloader, criterion, epoch, print_freq=10, cfg=None
             for n, m in  net.named_modules():
                 if isinstance(m, quantizer_fn): #and m.bit!=8 and m.bit!=32:
                     attention = monitors[0].tensors["module#" + n].attention( monitors[0].tensors["actin#" + n]).argmax(dim=1) + 2 
-                    if n not in logdata: logdata[n] = [2, 3, 4, 5]
+                    if n not in logdata: logdata[n] = [2, 3, 4]
                     logdata[n] = logdata[n] + list(attention.cpu().detach().numpy())
 
 
