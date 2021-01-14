@@ -17,6 +17,8 @@ import numpy as np
 from functools import partial
 from torch.utils.tensorboard import SummaryWriter
 from monitors.metrics import write_metrics
+from monitors.common import SingleBatchStatisticsPrinter
+
 
 import utils
 import hydra
@@ -24,6 +26,9 @@ from omegaconf import DictConfig, OmegaConf
 from hydra.utils import get_original_cwd
 from models.cifar100_presnet import preact_resnet32_cifar
 
+import matplotlib
+import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
 
 
 # from quantizer.uniq import UniQQuantizer
@@ -118,29 +123,74 @@ def load_checkpoint(net, init_from):
         warnings.warn("No checkpoint file is provided !!!")
 
 
-def train(net, optimizer, trainloader, criterion, epoch, print_freq=10, cfg=None):
+def train(net, optimizer, trainloader, criterion, epoch, print_freq=10, cfg=None, _register_hook=False, monitors=None,logdata ={}, update_params=True):
     print('\nEpoch: %d' % epoch)
-    net.train()
+    if update_params:
+        net.train()
+    else:
+        net.eval()
+
     train_loss = 0
     correct = 0
     total = 0
 
+    if _register_hook:
+        [m.start_epoch("train", epoch) for m in monitors]
+
     for batch_idx, (inputs, targets) in enumerate(trainloader):
+        if _register_hook:
+            [m.start_update("train", epoch, batch_idx) for m in monitors]
+
         inputs, targets = inputs.to(device), targets.to(device)
         optimizer.zero_grad()
         outputs = net(inputs)
         loss = criterion(outputs, targets)
 
         loss.backward()
-        optimizer.step()
+        if update_params:
+            optimizer.step()
         train_loss += loss.item()
         _, predicted = outputs.max(1)
         total += targets.size(0)
         correct += predicted.eq(targets).sum().item()
 
+        if _register_hook:
+
+            from quantizer.condlsq import Dynamic_LSQConv2d as quantizer_fn
+            for n, m in  net.named_modules():
+                if isinstance(m, quantizer_fn): #and m.bit!=8 and m.bit!=32:
+                    attention = monitors[0].tensors["module#" + n].attention( monitors[0].tensors["actin#" + n]).argmax(dim=1) + 2 
+                    if n not in logdata: logdata[n] = [2, 3, 4, 5]
+                    logdata[n] = logdata[n] + list(attention.cpu().detach().numpy())
+
+
+            [m.end_update("train", epoch, batch_idx) for m in monitors]
+
         if batch_idx % print_freq == 0:
             print ("[Train] Epoch=", epoch,  " BatchID=", batch_idx, 'Loss: %.3f | Acc: %.3f%% (%d/%d)'  \
                     % (train_loss/(batch_idx+1), 100.*correct/total, correct, total))
+
+
+    if _register_hook:
+        print ("Doing something here ...")
+
+
+        fig = plt.figure(figsize=(20, 15))
+        gs = gridspec.GridSpec(6, 6, hspace=0.6,wspace=0.1)
+        idx = 0 
+        for k, v in logdata.items():
+            ax = fig.add_subplot(gs[idx])
+            ax.hist(v)
+            ax.set_xlabel(k)
+            idx +=1
+
+        # ax1 = plt.subplot(gs[0])
+        # ax2 = plt.subplot(gs[1])
+        # ax3 = plt.subplot(gs[2])
+        # ax4 = plt.subplot(gs[3])            
+        plt.savefig("epoch_" + str(epoch) + ".png")
+        [m.end_epoch("train", epoch) for m in monitors]
+
 
     if hasattr(cfg, 'enable_condconv') and cfg.enable_condconv:
         net.module.update_temperature()
@@ -278,8 +328,13 @@ def main(cfg: DictConfig) -> None:
 
     if cfg.evaluate:
         print("==> Start evaluating ...")
-        test(net, testloader, criterion, -1)
+        test_loss, test_acc1, curr_acc = test(net, testloader, criterion, -1)
+        print ("test_loss=", test_loss)
+        print ("test_acc1=", test_acc1)
+        print ("curr_acc=", curr_acc)
+
         exit()
+
 
     # -----------------------------------------------
     # Reset to 'warmup_lr' if we are using warmup strategy.
@@ -299,10 +354,34 @@ def main(cfg: DictConfig) -> None:
     # Training
     # -----------------------------------------------
     save_checkpoint_epochs = list(range(10))
+    monitors = [
+            SingleBatchStatisticsPrinter(module_types=None, mode="train", max_iterations=10, max_epoch=cfg.dataset.epochs, 
+                save=False, working_dir=working_dir, 
+                prefix="standard",
+                num_samples_to_save=cfg.dataset.batch_size, num_features_to_save=1),
+        ]
+
+    _ = [m.set_network(net) for m in monitors]
+    logdata = {}
+
+    if "train_eval" in cfg and cfg.train_eval == True:
+        train_loss, train_acc1 = train(net, optimizer, trainloader, criterion, -1, cfg=cfg, _register_hook=True, monitors=monitors, logdata=logdata, update_params=False)
+        print ("Write logs....")
+
+
+        exit()
+
 
     for epoch in range(start_epoch, cfg.dataset.epochs):
-        train_loss, train_acc1 = train(net, optimizer, trainloader, criterion, epoch, cfg=cfg)
+        _register_hook = cfg.register_hook and  \
+                    (epoch % cfg.monitor_interval==0 or epoch in save_checkpoint_epochs or epoch == cfg.dataset.epochs - 1)
+
+
+        train_loss, train_acc1 = train(net, optimizer, trainloader, criterion, epoch, cfg=cfg, _register_hook=_register_hook, monitors=monitors, logdata=logdata)
         test_loss, test_acc1, curr_acc = test(net, testloader, criterion, epoch)
+
+        with open(os.path.join(working_dir, 'monitor_data.pkl'), 'wb') as f:
+            pickle.dump(logdata, f)
 
         # Save checkpoint.
         if curr_acc > best_acc:
