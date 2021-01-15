@@ -114,7 +114,7 @@ class PreActBasicBlock(nn.Module):
         raw_attention2, out = self.conv2(out)
 
         out += residual
-        return (raw_attention0, raw_attention1, raw_attention2)
+        return (raw_attention0, raw_attention1, raw_attention2), out
 
 
 # class PreActBottleneck(nn.Module):
