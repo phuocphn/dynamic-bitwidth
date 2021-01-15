@@ -146,7 +146,7 @@ def train(net, optimizer, trainloader, criterion, epoch, print_freq=10, cfg=None
         outputs, (raw0, raw1, raw2, raw3) = net(inputs)
 
         kl_losses = []
-        for d in [raw0, **raw1, **raw2, **raw3]:
+        for d in [raw0, *raw1, *raw2, *raw3]:
             if d == None: continue 
             a = torch.log_softmax(torch.tensor(d), dim=1)
             b = torch.softmax(torch.tensor([[0.6, 0.2, 0.2]]), dim=1)
