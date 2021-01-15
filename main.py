@@ -122,7 +122,7 @@ def load_checkpoint(net, init_from):
     else:
         warnings.warn("No checkpoint file is provided !!!")
 
-
+kl_criterion = nn.KLDivLoss()
 def train(net, optimizer, trainloader, criterion, epoch, print_freq=10, cfg=None, _register_hook=False, monitors=None,logdata ={}, update_params=True):
     print('\nEpoch: %d' % epoch)
     if update_params:
@@ -143,8 +143,16 @@ def train(net, optimizer, trainloader, criterion, epoch, print_freq=10, cfg=None
 
         inputs, targets = inputs.to(device), targets.to(device)
         optimizer.zero_grad()
-        outputs = net(inputs)
-        loss = criterion(outputs, targets)
+        outputs, (raw0, raw1, raw2, raw3) = net(inputs)
+
+        kl_losses = []
+        for d in [raw0, **raw1, **raw2, **raw3]:
+            if d == None: continue 
+            a = torch.log_softmax(torch.tensor(d), dim=1)
+            b = torch.softmax(torch.tensor([[0.6, 0.2, 0.2]]), dim=1)
+            kl_losses.append(kl_criterion(a, b)) 
+
+        loss = criterion(outputs, targets) + 1.0 * torch.stack(kl_losses)
 
         loss.backward()
         if update_params:
@@ -155,7 +163,6 @@ def train(net, optimizer, trainloader, criterion, epoch, print_freq=10, cfg=None
         correct += predicted.eq(targets).sum().item()
 
         if _register_hook:
-
             from quantizer.condlsq import Dynamic_LSQConv2d as quantizer_fn
             for n, m in  net.named_modules():
                 if isinstance(m, quantizer_fn): #and m.bit!=8 and m.bit!=32:
@@ -173,8 +180,6 @@ def train(net, optimizer, trainloader, criterion, epoch, print_freq=10, cfg=None
 
     if _register_hook:
         print ("Doing something here ...")
-
-
         fig = plt.figure(figsize=(20, 15))
         gs = gridspec.GridSpec(6, 6, hspace=0.6,wspace=0.1)
         idx = 0 

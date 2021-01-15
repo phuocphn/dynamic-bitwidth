@@ -59,7 +59,8 @@ class attention2d(nn.Module):
         x = self.fc1(x)
         x = F.relu(x)
         x = self.fc2(x).view(x.size(0), -1)
-        return gradient_approximation(x, self.temperature)
+        raw_attention = x
+        return raw_attention, gradient_approximation(x, self.temperature)
 
 
 
@@ -158,7 +159,7 @@ class Dynamic_LSQConv2d(nn.Module):
         self.attention.updata_temperature()
 
     def forward(self, x):#
-        softmax_attention = self.attention(x)
+        raw_attention, softmax_attention = self.attention(x)
         batch_size, in_channels, height, width = x.size()
         x = x.view(1, -1, height, width)
         weight = self.weight.view(self.K, -1)
@@ -175,4 +176,4 @@ class Dynamic_LSQConv2d(nn.Module):
                               dilation=self.dilation, groups=self.groups * batch_size)
 
         output = output.view(batch_size, self.out_channels, output.size(-2), output.size(-1))
-        return output
+        return raw_attention, output
