@@ -194,8 +194,8 @@ class SingleBatchStatisticsPrinter(PropagationMonitor):
 
         self.lock.release()
 
-        self.tensors["actin#"+module.name] = input[0].detach().data()
-        self.tensors["actout#"+module.name] = output.detach().data()
+        self.tensors["actin#"+module.name] = input[0].detach().data
+        self.tensors["actout#"+module.name] = output.detach().data
         self.tensors["module#" + module.name] = module
         # self.tensors["weight#"+module.name] = getattr(module, "weight", None)
         # self.tensors["bias#"+module.name] = getattr(module, "bias", None)
