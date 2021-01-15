@@ -256,10 +256,11 @@ class PreAct_ResNet_Cifar(nn.Module):
     def forward(self, x):
         raw0 = None
         x_out = self.conv1(x)
-        if len(x_out) == 1:
-            x = x_out
-        else:
+        if len(x_out) == 2:
             raw0, x = x_out
+        else:
+            x = x_out
+            
 
         raw1, x = self.layer1(x)
         raw2, x = self.layer2(x)
