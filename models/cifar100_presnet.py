@@ -266,7 +266,7 @@ class PreAct_ResNet_Cifar(nn.Module):
         x = x.view(x.size(0), -1)
         x = self.fc(x)
 
-        return x, (raw0, **raw1, **raw2, **raw3)
+        return x, (raw0, *raw1, *raw2, *raw3)
 
 
 # def resnet20_cifar(**kwargs):
