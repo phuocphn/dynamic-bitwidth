@@ -114,7 +114,7 @@ class PreActBasicBlock(nn.Module):
         raw_attention2, out = self.conv2(out)
 
         out += residual
-        return out, (raw_attention0, raw_attention1, raw_attention2)
+        return (raw_attention0, raw_attention1, raw_attention2)
 
 
 # class PreActBottleneck(nn.Module):
@@ -254,17 +254,29 @@ class PreAct_ResNet_Cifar(nn.Module):
         return nn.Sequential(*layers)
 
     def forward(self, x):
-        raw0 = None
-        x_out = self.conv1(x)
-        if len(x_out) == 2:
-            raw0, x = x_out
-        else:
-            x = x_out
-            
+        # raw0 = None
+        x = self.conv1(x)
 
-        raw1, x = self.layer1(x)
-        raw2, x = self.layer2(x)
-        raw3, x = self.layer3(x)
+
+        raw1, x = self.layer1[0](x)
+        raw2, x = self.layer1[1](x)
+        raw3, x = self.layer1[2](x)
+        raw4, x = self.layer1[3](x)
+        raw5, x = self.layer1[4](x)
+
+
+        raw6, x = self.layer2[0](x)
+        raw7, x = self.layer2[1](x)
+        raw8, x = self.layer2[2](x)
+        raw9, x = self.layer2[3](x)
+        raw10, x = self.layer2[4](x)
+
+        raw11, x = self.layer3[0](x)
+        raw12, x = self.layer3[1](x)
+        raw13, x = self.layer3[2](x)
+        raw14, x = self.layer3[3](x)
+        raw15, x = self.layer3[4](x)
+
 
         x = self.bn(x)
         x = self.relu(x)
@@ -272,7 +284,7 @@ class PreAct_ResNet_Cifar(nn.Module):
         x = x.view(x.size(0), -1)
         x = self.fc(x)
 
-        return x, (raw0, *raw1, *raw2, *raw3)
+        return x, (*raw1, *raw2, *raw3, *raw4, *raw5, *raw6, *raw7, *raw8, *raw9, *raw10, *raw11, *raw12, *raw13, *raw14, *raw15)
 
 
 # def resnet20_cifar(**kwargs):
