@@ -195,7 +195,7 @@ class SingleBatchStatisticsPrinter(PropagationMonitor):
         self.lock.release()
 
         self.tensors["actin#"+module.name] = input[0].detach().clone()
-        self.tensors["actout#"+module.name] = output.detach().clone()
+        self.tensors["actout#"+module.name] = output.detach().clone() if type(output) != list else output[0].detach().clone()
         self.tensors["module#" + module.name] = module
         # self.tensors["weight#"+module.name] = getattr(module, "weight", None)
         # self.tensors["bias#"+module.name] = getattr(module, "bias", None)
@@ -210,7 +210,7 @@ class SingleBatchStatisticsPrinter(PropagationMonitor):
             #print('activations: %s (var:%f) (Ex^2:%f) (n:%d) ->  %f' %(module.name, var, e2, n, output.data[:,:].var()))
         else:
             var_in = input[0].data.var()
-            var_out = output.data.var()
+            var_out = output.data.var() if type(output) != list else output[0].data.var() 
             gain = var_out/var_in
             #print('activations: %s %f  ->  %f (gain:%f)' %(module.name, var_in, var_out, gain))
 

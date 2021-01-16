@@ -104,16 +104,17 @@ class PreActBasicBlock(nn.Module):
         out = self.bn1(x)
         out = self.relu(out)
         
+        raw0 = None
         if self.downsample is not None:
-            residual = self.downsample(out)
+            residual, raw0 = self.downsample(out)
 
-        out = self.conv1(out)
+        out, raw1 = self.conv1(out)
         out = self.bn2(out)
         out = self.relu(out)
-        out = self.conv2(out)
+        out, raw2 = self.conv2(out)
 
         out += residual
-        return out, []
+        return out, [raw0, raw1, raw2]
 
 
 # class PreActBottleneck(nn.Module):
@@ -279,7 +280,7 @@ class PreAct_ResNet_Cifar(nn.Module):
         x = x.view(x.size(0), -1)
         x = self.fc(x)
 
-        return x, []
+        return x, [*raw1, *raw2, *raw3, *raw4, *raw5, *raw6, *raw7, *raw8, *raw9, *raw10, *raw11, *raw12, *raw13, *raw14, *raw15]
 
 
 # def resnet20_cifar(**kwargs):
