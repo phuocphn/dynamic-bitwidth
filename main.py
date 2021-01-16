@@ -123,7 +123,7 @@ def load_checkpoint(net, init_from):
         warnings.warn("No checkpoint file is provided !!!")
 
 
-def train(net, optimizer, trainloader, criterion, epoch, print_freq=10, cfg=None, _register_hook=False, monitors=None,logdata ={}, update_params=True):
+def train(net, optimizer, trainloader, criterion, epoch, print_freq=10, cfg=None, _register_hook=False, monitors=None,logdata ={}, update_params=True, working_dir="/tmp"):
     print('\nEpoch: %d' % epoch)
     if update_params:
         net.train()
@@ -188,7 +188,7 @@ def train(net, optimizer, trainloader, criterion, epoch, print_freq=10, cfg=None
         # ax2 = plt.subplot(gs[1])
         # ax3 = plt.subplot(gs[2])
         # ax4 = plt.subplot(gs[3])            
-        plt.savefig("epoch_" + str(epoch) + ".png")
+        plt.savefig(os.path.join(working_dir,   "epoch_" + str(epoch) + ".png"))
         [m.end_epoch("train", epoch) for m in monitors]
 
 
@@ -377,7 +377,7 @@ def main(cfg: DictConfig) -> None:
                     (epoch % cfg.monitor_interval==0 or epoch in save_checkpoint_epochs or epoch == cfg.dataset.epochs - 1)
 
 
-        train_loss, train_acc1 = train(net, optimizer, trainloader, criterion, epoch, cfg=cfg, _register_hook=_register_hook, monitors=monitors, logdata=logdata)
+        train_loss, train_acc1 = train(net, optimizer, trainloader, criterion, epoch, cfg=cfg, _register_hook=_register_hook, monitors=monitors, logdata=logdata, working_dir=working_dir)
         test_loss, test_acc1, curr_acc = test(net, testloader, criterion, epoch)
 
         with open(os.path.join(working_dir, 'monitor_data.pkl'), 'wb') as f:
