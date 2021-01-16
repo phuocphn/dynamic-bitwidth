@@ -122,7 +122,7 @@ def load_checkpoint(net, init_from):
     else:
         warnings.warn("No checkpoint file is provided !!!")
 
-
+kl_criterion = nn.KLDivLoss()
 def train(net, optimizer, trainloader, criterion, epoch, print_freq=10, cfg=None, _register_hook=False, monitors=None,logdata ={}, update_params=True, working_dir="/tmp"):
     print('\nEpoch: %d' % epoch)
     if update_params:
