@@ -27,6 +27,8 @@ from hydra.utils import get_original_cwd
 from models.cifar100_presnet import preact_resnet32_cifar
 
 import matplotlib
+matplotlib.use('Agg') 
+
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 
