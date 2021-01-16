@@ -188,8 +188,9 @@ def train(net, optimizer, trainloader, criterion, epoch, print_freq=10, cfg=None
         # ax1 = plt.subplot(gs[0])
         # ax2 = plt.subplot(gs[1])
         # ax3 = plt.subplot(gs[2])
-        # ax4 = plt.subplot(gs[3])            
-        plt.savefig(os.path.join(working_dir,   "epoch_" + str(epoch) + ".png"))
+        # ax4 = plt.subplot(gs[3])    
+        os.makedirs(os.path.join(working_dir, "attention_hist"), exexist_ok=True)        
+        plt.savefig(os.path.join(working_dir, "attention_hist",   "epoch_" + str(epoch) + ".png"))
         [m.end_epoch("train", epoch) for m in monitors]
 
 
