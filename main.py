@@ -144,7 +144,15 @@ def train(net, optimizer, trainloader, criterion, epoch, print_freq=10, cfg=None
         inputs, targets = inputs.to(device), targets.to(device)
         optimizer.zero_grad()
         outputs, raw = net(inputs)
-        loss = criterion(outputs, targets)
+
+        kl_losses = []
+        for d in raw:
+            if d == None: continue 
+            a = torch.log_softmax(torch.tensor(d), dim=1)
+            b = torch.softmax(torch.tensor([[0.6, 0.2, 0.2]]), dim=1)
+            kl_losses.append(kl_criterion(a, b)) 
+
+        loss = criterion(outputs, targets) + cfg.regularization_w * torch.stack(kl_losses)
 
         loss.backward()
         if update_params:
