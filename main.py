@@ -161,7 +161,7 @@ def train(net, optimizer, trainloader, criterion, epoch, print_freq=10, cfg=None
                 if isinstance(m, quantizer_fn): #and m.bit!=8 and m.bit!=32:
                     with torch.no_grad():
                         attention = monitors[0].tensors["module#" + n].attention( monitors[0].tensors["actin#" + n])#.argmax(dim=1) + 2 
-                        if type(aattention) == tuple:
+                        if type(attention) == tuple:
                             attention = attention[0].argmax(dim=1) + 2 
                         else:
                             attention = attention.argmax(dim=1) + 2 
