@@ -122,7 +122,7 @@ def load_checkpoint(net, init_from):
     else:
         warnings.warn("No checkpoint file is provided !!!")
 
-kl_criterion = nn.KLDivLoss()
+kl_criterion = nn.KLDivLoss(reduction='batchmean')
 def train(net, optimizer, trainloader, criterion, epoch, print_freq=10, cfg=None, _register_hook=False, monitors=None,logdata ={}, update_params=True, working_dir="/tmp"):
     print('\nEpoch: %d' % epoch)
     if update_params:
@@ -148,11 +148,11 @@ def train(net, optimizer, trainloader, criterion, epoch, print_freq=10, cfg=None
         kl_losses = []
         for d in raw:
             if d == None: continue 
-            a = torch.log_softmax(torch.tensor(d), dim=1)
-            b = torch.softmax(torch.tensor([[0.6, 0.2, 0.2]]), dim=1)
+            a = torch.log_softmax(d, dim=1)
+            b = torch.softmax(torch.tensor([[0.6, 0.2, 0.2]] * a.size(0)), dim=1).to(a.device)
             kl_losses.append(kl_criterion(a, b)) 
 
-        loss = criterion(outputs, targets) + cfg.regularization_w * torch.stack(kl_losses)
+        loss = criterion(outputs, targets) + cfg.regularization_w * torch.stack(kl_losses).mean()
 
         loss.backward()
         if update_params:
