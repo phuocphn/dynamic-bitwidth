@@ -113,7 +113,7 @@ class PreActBasicBlock(nn.Module):
         out = self.conv2(out)
 
         out += residual
-        return out
+        return out, []
 
 
 # class PreActBottleneck(nn.Module):
@@ -255,9 +255,23 @@ class PreAct_ResNet_Cifar(nn.Module):
     def forward(self, x):
         x = self.conv1(x)
 
-        x = self.layer1(x)
-        x = self.layer2(x)
-        x = self.layer3(x)
+        x, raw1 = self.layer1[0](x)
+        x, raw2 = self.layer1[1](x)
+        x, raw3 = self.layer1[2](x)
+        x, raw4 = self.layer1[3](x)
+        x, raw5 = self.layer1[4](x)
+
+        x, raw6 = self.layer2[0](x)
+        x, raw7 = self.layer2[1](x)
+        x, raw8 = self.layer2[2](x)
+        x, raw9 = self.layer2[3](x)
+        x, raw10 = self.layer2[4](x)
+
+        x, raw11 = self.layer3[0](x)
+        x, raw12 = self.layer3[1](x)
+        x, raw13 = self.layer3[2](x)
+        x, raw14 = self.layer3[3](x)
+        x, raw15 = self.layer3[4](x)
 
         x = self.bn(x)
         x = self.relu(x)
@@ -265,7 +279,7 @@ class PreAct_ResNet_Cifar(nn.Module):
         x = x.view(x.size(0), -1)
         x = self.fc(x)
 
-        return x
+        return x, []
 
 
 # def resnet20_cifar(**kwargs):

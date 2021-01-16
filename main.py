@@ -143,7 +143,7 @@ def train(net, optimizer, trainloader, criterion, epoch, print_freq=10, cfg=None
 
         inputs, targets = inputs.to(device), targets.to(device)
         optimizer.zero_grad()
-        outputs = net(inputs)
+        outputs, raw = net(inputs)
         loss = criterion(outputs, targets)
 
         loss.backward()
@@ -207,7 +207,7 @@ def test(net, testloader, criterion, epoch, print_freq=10):
     with torch.no_grad():
         for batch_idx, (inputs, targets) in enumerate(testloader):
             inputs, targets = inputs.to(device), targets.to(device)
-            outputs = net(inputs)
+            outputs, raw = net(inputs)
             loss = criterion(outputs, targets)
             test_loss += loss.item()
             _, predicted = outputs.max(1)
