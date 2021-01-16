@@ -100,7 +100,7 @@ class LSQQuantizer(torch.nn.Module):
             self.alpha[0, 0].data.copy_((2* x.detach().abs().mean() / math.sqrt(self.Qp_2bit)))
             self.alpha[1, 0].data.copy_((2* x.detach().abs().mean() / math.sqrt(self.Qp_3bit)))
             self.alpha[2, 0].data.copy_((2* x.detach().abs().mean() / math.sqrt(self.Qp_4bit)))
-            self.alpha[3, 0].data.copy_((2* x.detach().abs().mean() / math.sqrt(self.Qp_5bit)))
+            # self.alpha[3, 0].data.copy_((2* x.detach().abs().mean() / math.sqrt(self.Qp_5bit)))
             self.init_state.fill_(1)
             print (self.__class__.__name__, "Initializing step-size value ...")
         
