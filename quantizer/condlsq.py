@@ -158,7 +158,7 @@ class Dynamic_LSQConv2d(nn.Module):
         self.attention.updata_temperature()
 
     def forward(self, x):#
-        softmax_attention, x = self.attention(x)
+        softmax_attention, raw_attention = self.attention(x)
         batch_size, in_channels, height, width = x.size()
         x = x.view(1, -1, height, width)
         weight = self.weight.view(self.K, -1)
@@ -175,4 +175,4 @@ class Dynamic_LSQConv2d(nn.Module):
                               dilation=self.dilation, groups=self.groups * batch_size)
 
         output = output.view(batch_size, self.out_channels, output.size(-2), output.size(-1))
-        return [output, x]
+        return [output, raw_attention]
