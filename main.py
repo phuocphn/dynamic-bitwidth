@@ -379,13 +379,15 @@ def main(cfg: DictConfig) -> None:
         _register_hook = cfg.register_hook and  \
                     (epoch % cfg.monitor_interval==0 or epoch in save_checkpoint_epochs or epoch == cfg.dataset.epochs - 1)
 
-
+        logdata = {}
         train_loss, train_acc1 = train(net, optimizer, trainloader, criterion, epoch, cfg=cfg, _register_hook=_register_hook, monitors=monitors, logdata=logdata, working_dir=working_dir)
         test_loss, test_acc1, curr_acc = test(net, testloader, criterion, epoch)
 
         with open(os.path.join(working_dir, 'monitor_data.pkl'), 'wb') as f:
             pickle.dump(logdata, f)
 
+        del logdata
+        
         # Save checkpoint.
         if curr_acc > best_acc:
             best_acc = curr_acc
