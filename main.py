@@ -390,6 +390,7 @@ def main(cfg: DictConfig) -> None:
 
 
     for epoch in range(start_epoch, cfg.dataset.epochs):
+        logdata = {}
         _register_hook = cfg.register_hook and  \
                     (epoch % cfg.monitor_interval==0 or epoch in save_checkpoint_epochs or epoch == cfg.dataset.epochs - 1)
 
@@ -400,6 +401,8 @@ def main(cfg: DictConfig) -> None:
         with open(os.path.join(working_dir, 'monitor_data.pkl'), 'wb') as f:
             pickle.dump(logdata, f)
 
+        del logdata
+        
         # Save checkpoint.
         if curr_acc > best_acc:
             best_acc = curr_acc
