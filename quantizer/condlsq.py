@@ -79,20 +79,20 @@ class LSQQuantizer(torch.nn.Module):
             self.Qp_2bit = 2** 2 -1
             self.Qp_3bit = 2** 3 -1
             self.Qp_4bit = 2** 4 -1
-            # self.Qp_5bit = 2** 5 -1 
+            self.Qp_5bit = 2** 5 -1 
         else:
             self.Qn = -2 ** (self.bit - 1)
             self.Qn_2bit = -2 ** (2 - 1)
             self.Qn_3bit = -2 ** (3 - 1)
             self.Qn_4bit = -2 ** (4 - 1)
-            # self.Qn_5bit = -2 ** (5 - 1)
+            self.Qn_5bit = -2 ** (5 - 1)
 
 
             self.Qp = 2 ** (self.bit - 1) - 1
             self.Qp_2bit = 2 ** (2-1) -1
             self.Qp_3bit = 2 ** (3-1) -1
             self.Qp_4bit = 2 ** (4-1) -1
-            # self.Qp_5bit = 2 ** (5-1) -1 
+            self.Qp_5bit = 2 ** (5-1) -1 
 
 
     def forward(self, x):
@@ -100,7 +100,7 @@ class LSQQuantizer(torch.nn.Module):
             self.alpha[0, 0].data.copy_((2* x.detach().abs().mean() / math.sqrt(self.Qp_2bit)))
             self.alpha[1, 0].data.copy_((2* x.detach().abs().mean() / math.sqrt(self.Qp_3bit)))
             self.alpha[2, 0].data.copy_((2* x.detach().abs().mean() / math.sqrt(self.Qp_4bit)))
-            # self.alpha[3, 0].data.copy_((2* x.detach().abs().mean() / math.sqrt(self.Qp_5bit)))
+            self.alpha[3, 0].data.copy_((2* x.detach().abs().mean() / math.sqrt(self.Qp_5bit)))
             self.init_state.fill_(1)
             print (self.__class__.__name__, "Initializing step-size value ...")
         
@@ -108,7 +108,7 @@ class LSQQuantizer(torch.nn.Module):
         _alpha[0, 0].data.copy_(grad_scale(_alpha[0, 0], 1.0 / math.sqrt(x.size(1) * self.Qp_2bit)))
         _alpha[1, 0].data.copy_(grad_scale(_alpha[1, 0], 1.0 / math.sqrt(x.size(1) * self.Qp_3bit)))
         _alpha[2, 0].data.copy_(grad_scale(_alpha[2, 0], 1.0 / math.sqrt(x.size(1) * self.Qp_4bit)))
-        # _alpha[3, 0].data.copy_(grad_scale(_alpha[3, 0], 1.0 / math.sqrt(x.size(1) * self.Qp_5bit)))
+        _alpha[3, 0].data.copy_(grad_scale(_alpha[3, 0], 1.0 / math.sqrt(x.size(1) * self.Qp_5bit)))
 
 
         # g = 1.0 / math.sqrt(x.numel() * Qp)
@@ -117,7 +117,7 @@ class LSQQuantizer(torch.nn.Module):
         _div[0, 0] =  _div[0,0].clone().clamp(self.Qn_2bit, self.Qp_2bit)
         _div[1, 0] =  _div[1,0].clone().clamp(self.Qn_3bit, self.Qp_3bit)
         _div[2, 0] =  _div[2,0].clone().clamp(self.Qn_4bit, self.Qp_4bit)
-        # _div[3, 0] =  _div[3,0].clone().clamp(self.Qn_5bit, self.Qp_5bit)
+        _div[3, 0] =  _div[3,0].clone().clamp(self.Qn_5bit, self.Qp_5bit)
 
         x_q = round_pass(_div) * _alpha
         return x_q

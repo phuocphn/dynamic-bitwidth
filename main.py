@@ -151,7 +151,7 @@ def train(net, optimizer, trainloader, criterion, epoch, print_freq=10, cfg=None
         for d in raw:
             if d == None: continue 
             a = torch.log_softmax(d, dim=1)
-            b = torch.softmax(torch.tensor([[0.33, 0.33, 0.33]] * a.size(0), requires_grad=False), dim=1).to(a.device)
+            b = torch.softmax(torch.tensor([[0.25, 0.25, 0.25, 0.25]] * a.size(0), requires_grad=False), dim=1).to(a.device)
             kl_losses.append(kl_criterion(a, b)) 
 
         loss = criterion(outputs, targets) + cfg.regularization_w * torch.stack(kl_losses).mean()
@@ -176,7 +176,7 @@ def train(net, optimizer, trainloader, criterion, epoch, print_freq=10, cfg=None
                         else:
                             attention = attention.argmax(dim=1) + 2 
 
-                    if n not in logdata: logdata[n] = [2, 3, 4]
+                    if n not in logdata: logdata[n] = [2, 3, 4, 5]
                     logdata[n] = logdata[n] + list(attention.cpu().detach().numpy())
 
 
