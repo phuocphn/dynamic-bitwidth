@@ -68,62 +68,50 @@ class LSQQuantizer(torch.nn.Module):
         super(LSQQuantizer,self).__init__()
 
         self.alpha = nn.Parameter(torch.randn(K, 1))
-        self.bit = bit
+        self.bit = list(np.array(range(K)) + 2)
         self.K = K
         self.is_activation = is_activation
         self.register_buffer('init_state', torch.zeros(1))
                 
         if is_activation:
-            self.Qn = 0
-            self.Qp = 2 ** self.bit - 1
-            self.Qp_2bit = 2** 2 -1
-            self.Qp_3bit = 2** 3 -1
-            self.Qp_4bit = 2** 4 -1
-            self.Qp_5bit = 2** 5 -1 
+            self.Qns = []
+            for bit in np.array(range(K)) + 2:
+                self.Qns.append(0)
+            self.Qns = torch.tensor(self.Qns, requires_grad=False).view(-1, 1)
+
+            self.Qps = []
+            for bit in np.array(range(K)) + 2:
+                self.Qps.append(2** bit -1)
+            self.Qps = torch.tensor(self.Qps, requires_grad=False).view(-1, 1)
+
         else:
-            self.Qn = -2 ** (self.bit - 1)
-            self.Qn_2bit = -2 ** (2 - 1)
-            self.Qn_3bit = -2 ** (3 - 1)
-            self.Qn_4bit = -2 ** (4 - 1)
-            self.Qn_5bit = -2 ** (5 - 1)
+            self.Qns = []
+            for bit in np.array(range(K)) + 2:
+                self.Qns.append(-2 ** (bit- 1))
+            self.Qns = torch.tensor(self.Qns, requires_grad=False).view(-1, 1)
 
-
-            self.Qp = 2 ** (self.bit - 1) - 1
-            self.Qp_2bit = 2 ** (2-1) -1
-            self.Qp_3bit = 2 ** (3-1) -1
-            self.Qp_4bit = 2 ** (4-1) -1
-            self.Qp_5bit = 2 ** (5-1) -1 
-
+            self.Qps = []
+            for bit in np.array(range(K)) + 2:
+                self.Qps.append(2 ** (bit-1) -1)
+            self.Qps = torch.tensor(self.Qps, requires_grad=False).view(-1, 1)
 
     def forward(self, x):
         if self.training and self.init_state == 0:
-            self.alpha[0, 0].data.copy_((2* x.detach().abs().mean() / math.sqrt(self.Qp_2bit)))
-            self.alpha[1, 0].data.copy_((2* x.detach().abs().mean() / math.sqrt(self.Qp_3bit)))
-            self.alpha[2, 0].data.copy_((2* x.detach().abs().mean() / math.sqrt(self.Qp_4bit)))
-            self.alpha[3, 0].data.copy_((2* x.detach().abs().mean() / math.sqrt(self.Qp_5bit)))
+            self.alpha.data.copy_( (2* x.detach().abs().mean() / math.sqrt(self.Qps)))
             self.init_state.fill_(1)
             print (self.__class__.__name__, "Initializing step-size value ...")
         
-        _alpha = self.alpha
-        _alpha[0, 0].data.copy_(grad_scale(_alpha[0, 0], 1.0 / math.sqrt(x.size(1) * self.Qp_2bit)))
-        _alpha[1, 0].data.copy_(grad_scale(_alpha[1, 0], 1.0 / math.sqrt(x.size(1) * self.Qp_3bit)))
-        _alpha[2, 0].data.copy_(grad_scale(_alpha[2, 0], 1.0 / math.sqrt(x.size(1) * self.Qp_4bit)))
-        _alpha[3, 0].data.copy_(grad_scale(_alpha[3, 0], 1.0 / math.sqrt(x.size(1) * self.Qp_5bit)))
-
-
-        # g = 1.0 / math.sqrt(x.numel() * Qp)
-        # _alpha = grad_scale(self.alpha, g)
-        _div = x / _alpha
-        _div[0, 0] =  _div[0,0].clone().clamp(self.Qn_2bit, self.Qp_2bit)
-        _div[1, 0] =  _div[1,0].clone().clamp(self.Qn_3bit, self.Qp_3bit)
-        _div[2, 0] =  _div[2,0].clone().clamp(self.Qn_4bit, self.Qp_4bit)
-        _div[3, 0] =  _div[3,0].clone().clamp(self.Qn_5bit, self.Qp_5bit)
-
-        x_q = round_pass(_div) * _alpha
+        g = 1.0 / math.sqrt(x.numel() * self.Qps)
+        _alpha = grad_scale(self.alpha, g)
+        clipped = torch.max(torch.min(x/_alpha, self.Qps), self.Qns)
+        x_q = round_pass(clipped) * _alpha
         return x_q
 
     def __repr__(self):
         return "LSQQuantizer (bit=%s, is_activation=%s)" % (self.bit, self.is_activation)
+
+
+
 
 class Dynamic_LSQConv2d(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size, ratio=0.25, stride=1, padding=0, dilation=1, groups=1, bias=True, K=4,temperature=34, init_weight=True):
@@ -139,7 +127,9 @@ class Dynamic_LSQConv2d(nn.Module):
         self.bias = bias
         self.K = K
         self.attention = attention2d(in_channels, ratio, K, temperature)
-        self.lsq_fn = LSQQuantizer(bit=4, K=K, is_activation=False)
+        self.quan_w = LSQQuantizer(bit=4, K=K, is_activation=False)
+        self.quan_a = LSQQuantizer(bit=4, K=K, is_activation=True)
+
         self.weight = nn.Parameter(torch.randn(K, out_channels, in_channels//groups, kernel_size[0], kernel_size[0]), requires_grad=True)
         if bias:
             self.bias = nn.Parameter(torch.Tensor(K, out_channels))
@@ -161,17 +151,23 @@ class Dynamic_LSQConv2d(nn.Module):
         softmax_attention, raw_attention = self.attention(x)
         batch_size, in_channels, height, width = x.size()
         x = x.view(1, -1, height, width)
+        _x = x.unsqueeze(0).repeat(self.K, 1,1,1,1).view(self.K, -1)
+        _x = self.quan_a(_x)
+
+
         weight = self.weight.view(self.K, -1)
-        weight = self.lsq_fn(weight)
+        weight = self.quan_w(weight)
 
 
         aggregate_weight = torch.mm(softmax_attention, weight).view(-1, self.in_channels, self.kernel_size, self.kernel_size)
+        aggregate_activation = torch.mm(softmax_attention, _x).sum(0).view(1, -1, height, width)
+            
         if self.bias is not None:
             aggregate_bias = torch.mm(softmax_attention, self.bias).view(-1)
-            output = F.conv2d(x, weight=aggregate_weight, bias=aggregate_bias, stride=self.stride, padding=self.padding,
+            output = F.conv2d(aggregate_activation, weight=aggregate_weight, bias=aggregate_bias, stride=self.stride, padding=self.padding,
                               dilation=self.dilation, groups=self.groups*batch_size)
         else:
-            output = F.conv2d(x, weight=aggregate_weight, bias=None, stride=self.stride, padding=self.padding,
+            output = F.conv2d(aggregate_activation, weight=aggregate_weight, bias=None, stride=self.stride, padding=self.padding,
                               dilation=self.dilation, groups=self.groups * batch_size)
 
         output = output.view(batch_size, self.out_channels, output.size(-2), output.size(-1))
