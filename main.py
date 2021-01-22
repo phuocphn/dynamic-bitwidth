@@ -136,6 +136,11 @@ def train(net, optimizer, trainloader, criterion, epoch, print_freq=10, cfg=None
     correct = 0
     total = 0
 
+    if hasattr(cfg, "regularization_dist"):
+        regularization_dist = list(cfg.regularization_dist)
+    else:
+        regularization_dist = list(np.array([1.0/cfg.K]) * cfg.K)
+
     if _register_hook:
         [m.start_epoch("train", epoch) for m in monitors]
 
@@ -151,7 +156,7 @@ def train(net, optimizer, trainloader, criterion, epoch, print_freq=10, cfg=None
         for d in raw:
             if d == None: continue 
             a = torch.log_softmax(d, dim=1)
-            b = torch.softmax(torch.tensor([[0.25, 0.25, 0.25, 0.25]] * a.size(0), requires_grad=False), dim=1).to(a.device)
+            b = torch.softmax(torch.tensor([regularization_dist] * a.size(0), requires_grad=False), dim=1).to(a.device)
             kl_losses.append(kl_criterion(a, b)) 
 
         loss = criterion(outputs, targets) + cfg.regularization_w * torch.stack(kl_losses).mean()
@@ -176,7 +181,7 @@ def train(net, optimizer, trainloader, criterion, epoch, print_freq=10, cfg=None
                         else:
                             attention = attention.argmax(dim=1) + 2 
 
-                    if n not in logdata: logdata[n] = [2, 3, 4, 5]
+                    if n not in logdata: logdata[n] = list(np.array(range(cfg.K)) + 2 ) #[2, 3, 4, 5]
                     logdata[n] = logdata[n] + list(attention.cpu().detach().numpy())
 
 
