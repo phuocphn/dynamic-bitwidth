@@ -139,7 +139,7 @@ def train(net, optimizer, trainloader, criterion, epoch, print_freq=10, cfg=None
     if hasattr(cfg, "regularization_dist"):
         regularization_dist = list(cfg.regularization_dist)
     else:
-        regularization_dist = list(np.array([1.0/cfg.K]) * cfg.K)
+        regularization_dist = list(np.array([1.0/cfg.K] * cfg.K, dtype=np.float32))
 
     if _register_hook:
         [m.start_epoch("train", epoch) for m in monitors]
