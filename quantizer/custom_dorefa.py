@@ -202,7 +202,7 @@ class ADoReFaQuantizer(torch.nn.Module):
         # return x_q
 
     def __repr__(self):
-        return self.__class__.__name__ + " (bit=%s, is_activation=%s)" % (self.bit, self.is_activation)
+        return self.__class__.__name__ + " (bit=%s, is_activation=%s)" % (self.bit, True)
 
 
 
