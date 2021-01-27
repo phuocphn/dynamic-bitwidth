@@ -113,7 +113,35 @@ class q_k(Function):
     def backward(ctx, grad_output):
         return grad_output, None, None
 
+class qnew_k(Function):
+    """
+        This is the quantization module.
+        The input and output should be all on the interval [0, 1].
+        bit is only defined on positive integer values.
+    """
+    @staticmethod
+    def forward(ctx, input, bit, scheme='original'):
+        #assert bit > 0
+        assert torch.all(input >= 0) and torch.all(input <= 1)
+        if scheme == 'original':
+            a = (2** bit) - 1
+            res = torch.round(a * input)
+            res.div_(a)
+        elif scheme == 'modified':
+            a = 2** bit
+            res = torch.floor(a * input)
+            #res.clamp_(max=a - 1).div_(a)
+            res = torch.max(res, a-1)
+            res = res / a
+        else:
+            raise NotImplementedError
+        assert torch.all(res >= 0) and torch.all(res <= 1)
+        return res
 
+    @staticmethod
+    def backward(ctx, grad_output):
+        return grad_output, None, None
+        
 class ADoReFaQuantizer(torch.nn.Module):
     def __init__(self, bit=None): #, K=4, is_activation=False):
         super(ADoReFaQuantizer,self).__init__()
@@ -125,44 +153,22 @@ class ADoReFaQuantizer(torch.nn.Module):
             self.alpha = nn.Parameter(torch.tensor(8.0))
 
         self.bit = bit
-
         self.double_side = False
         self.quant = q_k.apply
         self.act_quant_scheme = getattr(FLAGS, 'act_quant_scheme', 'original')
 
-        # self.K = K
-        # self.is_activation = is_activation
-        # self.register_buffer('init_state', torch.zeros(1))
-        # if is_activation:
-        #     Qns = [0 for bit in np.array(range(K)) + 2 ]
-        #     self.register_buffer('Qns', torch.tensor(Qns, requires_grad=False).view(-1, 1))
-
-        #     Qps = [2** bit -1 for bit in np.array(range(K)) + 2]
-        #     self.register_buffer('Qps', torch.tensor(Qps, requires_grad=False).view(-1, 1))
-        # else:
-        #     print ("Un-expected behaviour")
 
     def forward(self, x, attention):
         if self.bit < 32:
             if getattr(FLAGS, 'switch_alpha', False):
                 print ("Un-expected behavior ..")
                 exit()
-                # if bita in FLAGS.bits_list:
-                #     idx_alpha = FLAGS.bits_list.index(bita)
-                # else:
-                #     idx_alpha = 0
-                # alpha = torch.abs(self.alpha[idx_alpha])
             else:
                 alpha = torch.abs(self.alpha)
             if self.double_side:
-                # input_val = torch.where(input > -alpha, input, -alpha)
                 pass
             else:
-                # input_val = torch.relu(input)
                 input_val = x
-
-
-
 
             input_val = torch.where(input_val < alpha, input_val, alpha)
             # if bita < 32 and not self.weight_only:
@@ -171,35 +177,14 @@ class ADoReFaQuantizer(torch.nn.Module):
                 if self.double_side:
                     print ("Un-expected behavior ..")
                     exit()
-                    # input_val.add_(1.0)
-                    # input_val.div_(2.0)
                 input_val = self.quant(input_val, self.bit, self.act_quant_scheme)
                 if self.double_side:
-                    pass
-                    # input_val.mul_(2.0)
-                    # input_val.sub_(1.0)
+                    print ("Un-expected behavior ..")
+                    exit()
                 input_val.mul_(alpha)
         else:
             input_val = input
         return input
-
-
-
-        # if self.training and self.init_state == 0:
-        #     self.alpha.data.copy_( (2* x.detach().abs().mean() / (self.Qps * 1.0)**0.5))
-        #     self.init_state.fill_(1)
-        #     print (self.__class__.__name__, "Initializing step-size value ...")
-        
-        # runtime_Qns = torch.mm(attention, self.Qns*1.0)
-        # runtime_Qps = torch.mm(attention, self.Qps*1.0)
-        # runtime_alphas = torch.mm(attention, self.alpha)
-
-        # g = 1.0 / ( (x.numel() / x.size(0)) * runtime_Qps) ** 0.5
-        # _alpha = grad_scale(runtime_alphas, g)
-        # clipped = torch.max(torch.min(x/_alpha.view(-1, 1, 1,1), runtime_Qps.view(-1, 1,1,1)), runtime_Qns.view(-1,1,1,1))
-        # clipped = x/ _alpha.view(-1, 1,1,1)
-        # x_q = round_pass(clipped) * _alpha.view(-1,1,1,1)
-        # return x_q
 
     def __repr__(self):
         return self.__class__.__name__ + " (bit=%s, is_activation=%s)" % (self.bit, True)
@@ -211,55 +196,24 @@ class WDoReFaQuantizer(torch.nn.Module):
         super(WDoReFaQuantizer,self).__init__()
         self.weight_quant_scheme = getattr(FLAGS, 'weight_quant_scheme', 'modified')
         self.act_quant_scheme = getattr(FLAGS, 'act_quant_scheme', 'original')
-        self.bit = bit
-        self.quant = q_k.apply
-        self.K=K
+        #self.bit = torch.tensor(np.arange(K) + 2).view(-1, 1)
+        self.register_buffer('bit', torch.tensor(np.arange(K) + 2).view(-1, 1))
+        self.quant = qnew_k.apply
+        self.K = K
 
     def forward(self, x):
-        outputs = []
-        
-        for bit in np.arange(self.K) + 2:
-            xq = torch.tanh(x) / torch.max(torch.abs(torch.tanh(x)))
-            xq.add_(1.0)
-            xq.div_(2.0)
-            xq = self.quant(xq, bit, self.weight_quant_scheme)
-            xq.mul_(2.0)
-            xq.sub_(1.0)
-            outputs.append(xq)
+        #for bit in np.arange(self.K) + 2:
+        xq = torch.tanh(x) / torch.max(torch.abs(torch.tanh(x)))
+        xq.add_(1.0)
+        xq.div_(2.0)
+        xq = self.quant(xq, self.bit, self.weight_quant_scheme)
+        xq.mul_(2.0)
+        xq.sub_(1.0)
+        return xq 
 
-        return torch.stack(outputs, dim=0)
-
-
-
-        # if self.bit < 32:
-        #     x = torch.tanh(x) / torch.max(torch.abs(torch.tanh(x)))
-        #     x.add_(1.0)
-        #     x.div_(2.0)
-        #     x = self.quant(x, self.bit, self.weight_quant_scheme)
-        #     x.mul_(2.0)
-        #     x.sub_(1.0)
-
-        #     if getattr(FLAGS, 'rescale_conv', False):
-        #         print ("Un-expected path....", "if getattr(FLAGS, 'rescale_conv', False):")
-        #         exit()
-        # else:
-        #     print ("Un-expected path....", "32bit ???")
-        #     exit()
-
-        #     # no quantizing but only clamping
-        #     # if getattr(FLAGS, 'clamp', True):
-        #     #     x = torch.tanh(x) / torch.max(torch.abs(torch.tanh(x)))
-        #     # else:
-        #     #     x = x * 1.0
-        #     # if getattr(FLAGS, 'rescale_conv', False):
-        #     #     print ("Un-expected path....", "if getattr(FLAGS, 'rescale_conv', False):")
-        #     #     exit()
-
-        # return x
 
     def __repr__(self):
-        return self.__class__.__name__ + "weight_quant_scheme={}, act_quant_scheme={}, bit={}".format(self.weight_quant_scheme, self.act_quant_scheme, self.bit)
-        # return self.__class__.__name__ + " (bit=%s, is_activation=%s)" % (self.bit, self.is_activation)
+        return self.__class__.__name__ + "(weight_quant_scheme={}, act_quant_scheme={}, bit={})".format(self.weight_quant_scheme, self.act_quant_scheme, self.bit)
 
 
 
@@ -306,6 +260,8 @@ class DynamicDRFConv2d(nn.Module):
         
         weight = self.weight.view(self.K, -1)
         weight = self.quan_w(weight)
+        #print ("w shape:", weight.size())
+        #exit()
 
 
         aggregate_weight = torch.mm(softmax_attention, weight).view(-1, self.in_channels, self.kernel_size, self.kernel_size)
