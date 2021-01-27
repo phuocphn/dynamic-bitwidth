@@ -25,6 +25,7 @@ import hydra
 from omegaconf import DictConfig, OmegaConf
 from hydra.utils import get_original_cwd
 from models.cifar100_presnet import preact_resnet32_cifar
+from models.cifar100_presnet_standard import preact_resnet32_cifar as preact_resnet32_cifar_standard
 
 import matplotlib
 matplotlib.use('Agg') 
@@ -48,8 +49,12 @@ def setup_network(dataset, arch):
         net = models.get(arch, None)()
 
     elif dataset == "cifar100":
-        assert arch == "presnet32"
-        net = preact_resnet32_cifar(num_classes=100)
+        if arch == "presnet32":
+            net = preact_resnet32_cifar(num_classes=100)
+        elif arch == "presnet32-standard":
+            net = preact_resnet32_cifar_standard(num_classes=100)
+        else:
+            raise ValueError("Unsupported")
     return net
 
 
@@ -73,6 +78,21 @@ def tweak_network(net, bit, arch, train_conf, quant_mode, cfg):
             }
 
 
+        if train_scheme == "lsq":
+            from quantizer.lsq import Conv2dLSQ, InputConv2dLSQ, LinearLSQ
+            input_conv_layer = InputConv2dLSQ
+            conv_layer = Conv2dLSQ
+            linear_layer = LinearLSQ
+            replacement_dict = {
+                nn.Conv2d: partial(conv_layer, bit=bit),
+                nn.Linear: partial(linear_layer, bit=bit)
+            }
+            exception_dict = {
+                '__first__': partial(input_conv_layer, bit=8),
+                '__last__': partial(linear_layer, bit=8),
+            }
+
+
         if train_scheme == "condconv":
             from quantizer.condconv import Dynamic_conv2d
             replacement_dict = { nn.Conv2d: partial(Dynamic_conv2d, K=cfg.K)}
@@ -85,6 +105,7 @@ def tweak_network(net, bit, arch, train_conf, quant_mode, cfg):
             replacement_dict = { nn.Conv2d: partial(Dynamic_LSQConv2d, K=cfg.K)}
             exception_dict = {}
             # exception_dict = { '__first__': nn.Conv2d,  '__last__': nn.Linear,}         
+
 
 
         # if arch == "glouncv-mobilenetv2_w1":
@@ -136,10 +157,12 @@ def train(net, optimizer, trainloader, criterion, epoch, print_freq=10, cfg=None
     correct = 0
     total = 0
 
-    if hasattr(cfg, "regularization_dist"):
-        regularization_dist = list(cfg.regularization_dist)
-    else:
-        regularization_dist = list(np.array([1.0/cfg.K] * cfg.K, dtype=np.float32))
+    _enable_condlsq_regularization = getattr(cfg, "enable_condlsq_regularization", False)
+    if _enable_condlsq_regularization:
+        if hasattr(cfg, "regularization_dist"):
+            regularization_dist = list(cfg.regularization_dist)
+        else:
+            regularization_dist = list(np.array([1.0/cfg.K] * cfg.K, dtype=np.float32))
 
     if _register_hook:
         [m.start_epoch("train", epoch) for m in monitors]
@@ -150,16 +173,27 @@ def train(net, optimizer, trainloader, criterion, epoch, print_freq=10, cfg=None
 
         inputs, targets = inputs.to(device), targets.to(device)
         optimizer.zero_grad()
-        outputs, raw = net(inputs)
 
-        kl_losses = []
-        for d in raw:
-            if d == None: continue 
-            a = torch.log_softmax(d, dim=1)
-            b = torch.softmax(torch.tensor([regularization_dist] * a.size(0), requires_grad=False), dim=1).to(a.device)
-            kl_losses.append(kl_criterion(a, b)) 
+        net_outs = net(inputs)
+        if type(net_outs) in (list, tuple):
+            assert len(net_outs) == 2
+            outputs, raw  = net_outs
+        else:
+            outputs = net_outs
 
-        loss = criterion(outputs, targets) + cfg.regularization_w * torch.stack(kl_losses).mean()
+
+        # For condlsq.py / attention distribution regularization
+        if _enable_condlsq_regularization:
+            kl_losses = []
+            for d in raw:
+                if d == None: continue 
+                a = torch.log_softmax(d, dim=1)
+                b = torch.softmax(torch.tensor([regularization_dist] * a.size(0), requires_grad=False), dim=1).to(a.device)
+                kl_losses.append(kl_criterion(a, b)) 
+            loss = criterion(outputs, targets) + cfg.regularization_w * torch.stack(kl_losses).mean()
+        else:
+            loss = criterion(outputs, targets)
+
 
         loss.backward()
         if update_params:
@@ -227,7 +261,17 @@ def test(net, testloader, criterion, epoch, print_freq=10):
     with torch.no_grad():
         for batch_idx, (inputs, targets) in enumerate(testloader):
             inputs, targets = inputs.to(device), targets.to(device)
-            outputs, raw = net(inputs)
+            
+
+            net_outs = net(inputs)
+            if type(net_outs) in (list, tuple):
+                assert len(net_outs) == 2
+                outputs, raw  = net_outs
+            else:
+                outputs = net_outs
+
+
+
             loss = criterion(outputs, targets)
             test_loss += loss.item()
             _, predicted = outputs.max(1)
@@ -395,7 +439,7 @@ def main(cfg: DictConfig) -> None:
 
 
     for epoch in range(start_epoch, cfg.dataset.epochs):
-        _register_hook = cfg.register_hook and  \
+        _register_hook = getattr(cfg, "register_hook", False) and  \
                     (epoch % cfg.monitor_interval==0 or epoch in save_checkpoint_epochs or epoch == cfg.dataset.epochs - 1)
         logdata = {}
         train_loss, train_acc1 = train(net, optimizer, trainloader, criterion, epoch, cfg=cfg, _register_hook=_register_hook, monitors=monitors, logdata=logdata, working_dir=working_dir)
