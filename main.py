@@ -87,6 +87,13 @@ def tweak_network(net, bit, arch, train_conf, quant_mode, cfg):
             # exception_dict = { '__first__': nn.Conv2d,  '__last__': nn.Linear,}         
 
 
+        if train_scheme == "drf":
+            from quantizer.custom_dorefa import DynamicDRFConv2d
+            replacement_dict = { nn.Conv2d: partial(DynamicDRFConv2d, K=cfg.K)}
+            exception_dict = {}
+
+
+
         # if arch == "glouncv-mobilenetv2_w1":
         #     exception_dict['__last__'] = partial(conv_layer, bit=8)
         net = utils.replace_module(net,
@@ -94,7 +101,7 @@ def tweak_network(net, bit, arch, train_conf, quant_mode, cfg):
                                    exception_dict=exception_dict,
                                    arch=arch)
 
-        if train_scheme == "condconv" or train_scheme == "condlsqconv":
+        if train_scheme == "condconv" or train_scheme == "condlsqconv" or train_scheme == "drf":
             m = net.conv1
             net.conv1 = nn.Conv2d(in_channels=m.in_channels, 
                 out_channels=m.out_channels, kernel_size=m.kernel_size, 
