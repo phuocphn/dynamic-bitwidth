@@ -116,7 +116,7 @@ class q_k(Function):
 
 class ADoReFaQuantizer(torch.nn.Module):
     def __init__(self, bit=None): #, K=4, is_activation=False):
-        super(ActivationAtentionQuantizer,self).__init__()
+        super(ADoReFaQuantizer,self).__init__()
 
         # self.alpha = nn.Parameter(torch.randn(K, 1))
         if getattr(FLAGS, 'switch_alpha', False):
