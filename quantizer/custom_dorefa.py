@@ -233,7 +233,7 @@ class DynamicDRFConv2d(nn.Module):
         self.K = K
         self.attention = attention2d(in_channels, ratio, K, temperature)
         self.quan_w = WDoReFaQuantizer(bit=None, K=K, is_activation=False)
-        self.quan_a = ADoReFaQuantizer(bit=4) #, K=K, is_activation=True)
+        # self.quan_a = ADoReFaQuantizer(bit=4) #, K=K, is_activation=True)
 
         self.weight = nn.Parameter(torch.randn(K, out_channels, in_channels//groups, kernel_size[0], kernel_size[0]), requires_grad=True)
         if bias:
