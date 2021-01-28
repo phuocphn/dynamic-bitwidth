@@ -198,18 +198,24 @@ class WDoReFaQuantizer(torch.nn.Module):
         self.act_quant_scheme = getattr(FLAGS, 'act_quant_scheme', 'original')
         #self.bit = torch.tensor(np.arange(K) + 2).view(-1, 1)
         self.register_buffer('bit', torch.tensor(np.arange(K) + 2).view(-1, 1))
-        self.quant = qnew_k.apply
+        self.quant = q_k.apply
         self.K = K
 
     def forward(self, x):
-        #for bit in np.arange(self.K) + 2:
-        xq = torch.tanh(x) / torch.max(torch.abs(torch.tanh(x)))
-        xq.add_(1.0)
-        xq.div_(2.0)
-        xq = self.quant(xq, self.bit, self.weight_quant_scheme)
-        xq.mul_(2.0)
-        xq.sub_(1.0)
-        return xq 
+        outputs = []
+        x = x.view(-1)
+        #print ("original x shape: ", x.size())
+        for bit in np.arange(self.K) + 2:
+            xq = torch.tanh(x) / torch.max(torch.abs(torch.tanh(x)))
+            xq.add_(1.0)
+            xq.div_(2.0)
+            xq = self.quant(xq, bit, self.weight_quant_scheme)
+            xq.mul_(2.0)
+            xq.sub_(1.0)
+            outputs.append(xq)
+        #print ("stack shape: ", torch.stack(outputs).size())
+        #exit()
+        return torch.stack(outputs)
 
 
     def __repr__(self):
@@ -235,7 +241,7 @@ class DynamicDRFConv2d(nn.Module):
         self.quan_w = WDoReFaQuantizer(bit=None, K=K, is_activation=False)
         # self.quan_a = ADoReFaQuantizer(bit=4) #, K=K, is_activation=True)
 
-        self.weight = nn.Parameter(torch.randn(K, out_channels, in_channels//groups, kernel_size[0], kernel_size[0]), requires_grad=True)
+        self.weight = nn.Parameter(torch.randn(out_channels, in_channels//groups, kernel_size[0], kernel_size[0]), requires_grad=True)
         if bias:
             self.bias = nn.Parameter(torch.Tensor(K, out_channels))
         else:
@@ -245,8 +251,8 @@ class DynamicDRFConv2d(nn.Module):
 
         #TODO åˆå§‹åŒ–
     def _initialize_weights(self):
-        for i in range(self.K):
-            nn.init.kaiming_uniform_(self.weight[i])
+        #for i in range(1):
+        nn.init.kaiming_uniform_(self.weight)
 
 
     def update_temperature(self):
@@ -258,7 +264,7 @@ class DynamicDRFConv2d(nn.Module):
         # x = self.quan_a(x, softmax_attention)
         x = x.view(1, -1, height, width)
         
-        weight = self.weight.view(self.K, -1)
+        weight = self.weight.view(1, -1)
         weight = self.quan_w(weight)
         #print ("w shape:", weight.size())
         #exit()
