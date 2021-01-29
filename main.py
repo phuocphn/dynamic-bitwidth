@@ -137,8 +137,28 @@ def train(net, optimizer, trainloader, criterion, epoch, print_freq=10, cfg=None
     total = 0
 
     if hasattr(cfg, "regularization_dist"):
-        regularization_dist = list(cfg.regularization_dist)
+        # regularization_dist = list(cfg.regularization_dist)
+
+        regularization_w = cfg.regularization_w
+
+        if epoch <100:
+            regularization_dist = [0.1,0.15,0.75]
+        elif epoch >=100 and epoch <= 200:
+            regularization_dist = [0.1,0.75, 0.15]
+        elif epoch >=200 and epoch <= 250:
+            regularization_dist = [0.75, 0.15, 0.1]
+        elif epoch >=250 and epoch <= 300:
+            regularization_dist = [1.0, 0.0, 0.0]
+        elif epoch >=300 and epoch <= 350:
+            regularization_dist = [1.0, 0.0, 0.0]
+            regularization_w = cfg.regularization_w2
+
+
+
+
     else:
+        print ("Unexpected regularization --- Exit....")
+        exit()
         regularization_dist = list(np.array([1.0/cfg.K] * cfg.K, dtype=np.float32))
 
     if _register_hook:
@@ -159,7 +179,7 @@ def train(net, optimizer, trainloader, criterion, epoch, print_freq=10, cfg=None
             b = torch.softmax(torch.tensor([regularization_dist] * a.size(0), requires_grad=False), dim=1).to(a.device)
             kl_losses.append(kl_criterion(a, b)) 
 
-        loss = criterion(outputs, targets) + cfg.regularization_w * torch.stack(kl_losses).mean()
+        loss = criterion(outputs, targets) + regularization_w * torch.stack(kl_losses).mean()
 
         loss.backward()
         if update_params:
