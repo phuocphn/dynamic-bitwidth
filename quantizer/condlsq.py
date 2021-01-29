@@ -194,4 +194,4 @@ class Dynamic_LSQConv2d(nn.Module):
                               dilation=self.dilation, groups=self.groups * batch_size)
 
         output = output.view(batch_size, self.out_channels, output.size(-2), output.size(-1))
-        return [output, raw_attention]
+        return [output, (torch.argmax(raw_attention, 1, True) * 1.0 * self.weight.numel()).sum()]
