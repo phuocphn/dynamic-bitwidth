@@ -144,29 +144,29 @@ def train(net, optimizer, trainloader, criterion, epoch, print_freq=10, cfg=None
         if epoch <=100:
             regularization_dist = [0.1,0.15,0.75]
 
-            w_linspace =np.linspace(0, cfg.regularization, 100 + 1)
+            w_linspace =np.linspace(0, cfg.regularization_w, 100 + 1)
             regularization_w =  w_linspace[epoch-0]
 
         elif epoch >100 and epoch <= 200:
             regularization_dist = [0.1,0.75, 0.15]
 
-            w_linspace =np.linspace(0, cfg.regularization, 100 + 1)
+            w_linspace =np.linspace(0, cfg.regularization_w, 100 + 1)
             regularization_w =  w_linspace[epoch-100]
         elif epoch >200 and epoch <= 250:
             regularization_dist = [0.75, 0.15, 0.1]
-            w_linspace =np.linspace(0, cfg.regularization, 50 + 1)
+            w_linspace =np.linspace(0, cfg.regularization_w, 50 + 1)
             regularization_w =  w_linspace[epoch-200]
 
 
         elif epoch >250 and epoch <= 300:
             regularization_dist = [1.0, 0.0, 0.0]
-            w_linspace =np.linspace(0, cfg.regularization, 50 + 1)
+            w_linspace =np.linspace(0, cfg.regularization_w, 50 + 1)
             regularization_w =  w_linspace[epoch-250]
 
 
         elif epoch >300 and epoch <= 350:
             regularization_dist = [1.0, 0.0, 0.0]
-            w_linspace =np.linspace(0, cfg.regularization, 50 + 1)
+            w_linspace =np.linspace(0, cfg.regularization_w, 50 + 1)
             regularization_w =  w_linspace[epoch-300]
 
 
