@@ -168,7 +168,7 @@ def train(net, optimizer, trainloader, criterion, epoch, print_freq=10, cfg=None
         #     regularization_dist = [1.0, 0.0, 0.0]
         #     w_linspace =np.linspace(0, cfg.regularization_w, 50 + 1)
         #     regularization_w =  w_linspace[epoch-300]
-        a_s = np.linspace(0,1,350)
+        a_s = np.linspace(0,1,350, dtype=np.double) * 1.0
         a = a_s[epoch]
 
         bc = 1.0 - a
