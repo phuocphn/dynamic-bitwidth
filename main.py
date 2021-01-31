@@ -172,8 +172,8 @@ def train(net, optimizer, trainloader, criterion, epoch, print_freq=10, cfg=None
         a = a_s[epoch]
 
         bc = 1.0 - a
-        b = bc * 1.0/3.0
-        c = bc * 2.0/3.0
+        c = bc * 1.0/3.0
+        b = bc * 2.0/3.0
 
         assert float(a)+float(b)+float(c) == 1.0
         regularization_dist = [float(a), float(b), float(c)]
