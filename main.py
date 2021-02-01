@@ -177,7 +177,7 @@ def train(net, optimizer, trainloader, criterion, epoch, print_freq=10, cfg=None
         delta = 1.0 - (a+b+c)
         c = c + delta
 
-        assert float(a)+float(b)+float(c) = 1.00
+        assert float(a)+float(b)+float(c) == 1.00
         regularization_dist = [float(a), float(b), float(c)]
 
 
