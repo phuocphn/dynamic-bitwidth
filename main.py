@@ -202,7 +202,7 @@ def train(net, optimizer, trainloader, criterion, epoch, print_freq=10, cfg=None
             if d == None: continue 
             # a = torch.log_softmax(d, dim=1)
             #b = torch.softmax(torch.tensor([regularization_dist] * a.size(0), requires_grad=False), dim=1).to(a.device)
-            b = torch.tensor([regularization_dist] * a.size(0), requires_grad=False).to(a.device)
+            b = torch.tensor([regularization_dist] * a.size(0), requires_grad=False).to(d.device)
             _klloss = F.kl_div(d.log(), b, None, None, 'sum')
             kl_losses.append(_klloss) 
 
