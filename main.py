@@ -137,7 +137,18 @@ def train(net, optimizer, trainloader, criterion, epoch, print_freq=10, cfg=None
     total = 0
 
     if hasattr(cfg, "regularization_dist"):
-        regularization_dist = list(cfg.regularization_dist)
+        # regularization_dist = list(cfg.regularization_dist)
+        a_s = np.linspace(0,1,350, dtype=np.double) * 1.0
+        a = a_s[epoch]
+        bc = 1.0 - a
+        c = bc * 1.0/3.0
+        b = bc * 2.0/3.0
+        delta = 1.0 - (a+b+c)
+        c = c + delta
+
+        assert float(a)+float(b)+float(c) == 1.00
+        regularization_dist = [float(a), float(b), float(c)]
+
     else:
         regularization_dist = list(np.array([1.0/cfg.K] * cfg.K, dtype=np.float32))
 
@@ -155,9 +166,11 @@ def train(net, optimizer, trainloader, criterion, epoch, print_freq=10, cfg=None
         kl_losses = []
         for d in raw:
             if d == None: continue 
-            a = torch.log_softmax(d, dim=1)
-            b = torch.softmax(torch.tensor([regularization_dist] * a.size(0), requires_grad=False), dim=1).to(a.device)
-            kl_losses.append(kl_criterion(a, b)) 
+            # a = torch.log_softmax(d, dim=1)
+            #b = torch.softmax(torch.tensor([regularization_dist] * a.size(0), requires_grad=False), dim=1).to(a.device)
+            b = torch.tensor([regularization_dist] * d.size(0), requires_grad=False).to(d.device)
+            _klloss = F.kl_div(d.log(), b, None, None, 'sum')
+            kl_losses.append(_klloss)
 
         loss = criterion(outputs, targets) + cfg.regularization_w * torch.stack(kl_losses).mean()
 
