@@ -59,7 +59,7 @@ class attention2d(nn.Module):
         x = self.fc1(x)
         x = F.relu(x)
         x = self.fc2(x).view(x.size(0), -1)
-        return gradient_approximation(x, self.temperature), F.softmax(x/temperature, 1)
+        return gradient_approximation(x, self.temperature), F.softmax(x/self.temperature, 1)
 
 
 class ActivationAtentionQuantizer(torch.nn.Module):
