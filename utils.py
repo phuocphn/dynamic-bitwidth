@@ -274,7 +274,7 @@ def get_dataloaders(dataset="cifar100", batch_size=128, data_root="~/data"):
             num_workers=4, pin_memory=True)
 
 
-    elif dataset == "cifar100":
+    elif dataset == "cifar100" or dataset == "cifar10":
 
         transform_train = transforms.Compose([
             transforms.RandomCrop(32, padding=4),
@@ -291,14 +291,15 @@ def get_dataloaders(dataset="cifar100", batch_size=128, data_root="~/data"):
                 std=(0.2673342858792401, 0.2564384629170883, 0.27615047132568404)),
         ])
 
+        dataset_cls = torchvision.datasets.CIFAR100 if dataset=="cifar100" else torchvision.datasets.CIFAR10
 
-        trainloader = torch.utils.data.DataLoader(torchvision.datasets.CIFAR100(
+        trainloader = torch.utils.data.DataLoader(dataset_cls(
                                                     root=data_root, train=True, download=True,
                                                     transform=transform_train), 
                                                 batch_size=batch_size, shuffle=True,
                                                 num_workers=4)
 
-        testloader = torch.utils.data.DataLoader(torchvision.datasets.CIFAR100(
+        testloader = torch.utils.data.DataLoader(dataset_cls(
                                                     root=data_root, train=False, download=True,
                                                     transform=transform_test), 
                                                 batch_size=batch_size, shuffle=False,

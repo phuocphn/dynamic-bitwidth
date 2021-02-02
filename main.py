@@ -37,7 +37,7 @@ import matplotlib.gridspec as gridspec
 # from quantizer.uniq import UniQQuantizer
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-def setup_network(dataset, arch):
+def setup_network(dataset, arch, num_classes=10):
     print('==> Building model..')
     if dataset == "imagenet":
         models = {
@@ -50,9 +50,9 @@ def setup_network(dataset, arch):
 
     elif dataset == "cifar100":
         if arch == "presnet32":
-            net = preact_resnet32_cifar(num_classes=100)
+            net = preact_resnet32_cifar(num_classes=num_classes)
         elif arch == "presnet32-standard":
-            net = preact_resnet32_cifar_standard(num_classes=100)
+            net = preact_resnet32_cifar_standard(num_classes=num_classes)
         else:
             raise ValueError("Unsupported")
     return net
@@ -352,7 +352,7 @@ def main(cfg: DictConfig) -> None:
         batch_size=cfg.dataset.batch_size,
         data_root=cfg.dataset.data_root)
 
-    net = setup_network(cfg.dataset.name, cfg.dataset.arch)
+    net = setup_network(cfg.dataset.name, cfg.dataset.arch, cfg.num_classes)
     net = tweak_network(net,
                         bit=cfg.quantizer.bit,
                         train_conf=cfg.train_conf,
