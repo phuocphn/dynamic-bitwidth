@@ -188,7 +188,7 @@ def replace_module(model, replacement_dict={}, exception_dict={}, arch="presnet1
 
     model = replace_all(model, replacement_dict=replacement_dict)
 
-    if arch == "presnet32" or arch == "presnet32-standard":
+    if arch == "presnet32" or arch == "presnet32-standard" or arch == "presnet20" or arch == "presnet20-standard":
         if "__first__" in exception_dict:
             model.conv1 = replace_single_module(new_cls=exception_dict['__first__'], current_module=model.conv1)
         
