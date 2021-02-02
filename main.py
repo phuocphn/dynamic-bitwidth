@@ -24,8 +24,10 @@ import utils
 import hydra
 from omegaconf import DictConfig, OmegaConf
 from hydra.utils import get_original_cwd
-from models.cifar100_presnet import preact_resnet32_cifar
+from models.cifar100_presnet import preact_resnet32_cifar, preact_resnet20_cifar
 from models.cifar100_presnet_standard import preact_resnet32_cifar as preact_resnet32_cifar_standard
+from models.cifar100_presnet_standard import preact_resnet20_cifar as preact_resnet20_cifar_standard
+
 
 import matplotlib
 matplotlib.use('Agg') 
@@ -53,6 +55,14 @@ def setup_network(dataset, arch, num_classes=10):
             net = preact_resnet32_cifar(num_classes=num_classes)
         elif arch == "presnet32-standard":
             net = preact_resnet32_cifar_standard(num_classes=num_classes)
+
+
+        if arch == "presnet20":
+            net = preact_resnet20_cifar(num_classes=num_classes)
+        elif arch == "presnet20-standard":
+            net = preact_resnet20_cifar_standard(num_classes=num_classes)
+
+
         else:
             raise ValueError("Unsupported")
     return net

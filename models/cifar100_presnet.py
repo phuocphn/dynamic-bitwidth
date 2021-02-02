@@ -322,9 +322,9 @@ class PreAct_ResNet_Cifar(nn.Module):
 #     model = ResNet_Cifar(Bottleneck, [111, 111, 111], **kwargs)
 #     return model
 
-# def preact_resnet20_cifar(**kwargs):
-#     model = PreAct_ResNet_Cifar(PreActBasicBlock, [3, 3, 3], **kwargs)
-#     return model
+def preact_resnet20_cifar(**kwargs):
+    model = PreAct_ResNet_Cifar(PreActBasicBlock, [3, 3, 3], **kwargs)
+    return model
 
 def preact_resnet32_cifar(**kwargs):
     model = PreAct_ResNet_Cifar(PreActBasicBlock, [5, 5, 5], **kwargs)
