@@ -352,7 +352,7 @@ def main(cfg: DictConfig) -> None:
         batch_size=cfg.dataset.batch_size,
         data_root=cfg.dataset.data_root)
 
-    net = setup_network(cfg.dataset.name, cfg.dataset.arch, cfg.num_classes)
+    net = setup_network(cfg.dataset.name, cfg.dataset.arch, cfg.dataset.num_classes)
     net = tweak_network(net,
                         bit=cfg.quantizer.bit,
                         train_conf=cfg.train_conf,
