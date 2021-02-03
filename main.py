@@ -167,12 +167,55 @@ def train(net, optimizer, trainloader, criterion, epoch, print_freq=10, cfg=None
     correct = 0
     total = 0
 
-    _enable_condlsq_regularization = getattr(cfg, "enable_condlsq_regularization", False)
-    if _enable_condlsq_regularization:
-        if hasattr(cfg, "regularization_dist"):
-            regularization_dist = list(cfg.regularization_dist)
-        else:
-            regularization_dist = list(np.array([1.0/cfg.K] * cfg.K, dtype=np.float32))
+    if hasattr(cfg, "regularization_dist"):
+        # regularization_dist = list(cfg.regularization_dist)
+
+        # regularization_w = cfg.regularization_w
+
+        # if epoch <=100:
+        #     regularization_dist = [0.1,0.15,0.75]
+
+        #     w_linspace =np.linspace(0, cfg.regularization_w, 100 + 1)
+        #     regularization_w =  w_linspace[epoch-0]
+
+        # elif epoch >100 and epoch <= 200:
+        #     regularization_dist = [0.1,0.75, 0.15]
+
+        #     w_linspace =np.linspace(0, cfg.regularization_w, 100 + 1)
+        #     regularization_w =  w_linspace[epoch-100]
+        # elif epoch >200 and epoch <= 250:
+        #     regularization_dist = [0.75, 0.15, 0.1]
+        #     w_linspace =np.linspace(0, cfg.regularization_w, 50 + 1)
+        #     regularization_w =  w_linspace[epoch-200]
+
+
+        # elif epoch >250 and epoch <= 300:
+        #     regularization_dist = [1.0, 0.0, 0.0]
+        #     w_linspace =np.linspace(0, cfg.regularization_w, 50 + 1)
+        #     regularization_w =  w_linspace[epoch-250]
+
+
+        # elif epoch >300 and epoch <= 350:
+        #     regularization_dist = [1.0, 0.0, 0.0]
+        #     w_linspace =np.linspace(0, cfg.regularization_w, 50 + 1)
+        #     regularization_w =  w_linspace[epoch-300]
+        a_s = np.linspace(0,1,350, dtype=np.double) * 1.0
+        a = a_s[epoch]
+
+        bc = 1.0 - a
+        c = bc * 1.0/3.0
+        b = bc * 2.0/3.0
+        delta = 1.0 - (a+b+c)
+        c = c + delta
+
+        assert float(a)+float(b)+float(c) == 1.00
+        regularization_dist = [float(a), float(b), float(c)]
+
+
+    else:
+        print ("Unexpected regularization --- Exit....")
+        exit()
+        regularization_dist = list(np.array([1.0/cfg.K] * cfg.K, dtype=np.float32))
 
     if _register_hook:
         [m.start_epoch("train", epoch) for m in monitors]
@@ -183,27 +226,18 @@ def train(net, optimizer, trainloader, criterion, epoch, print_freq=10, cfg=None
 
         inputs, targets = inputs.to(device), targets.to(device)
         optimizer.zero_grad()
+        outputs, raw = net(inputs)
 
-        net_outs = net(inputs)
-        if type(net_outs) in (list, tuple):
-            assert len(net_outs) == 2
-            outputs, raw  = net_outs
-        else:
-            outputs = net_outs
+        kl_losses = []
+        for d in raw:
+            if d == None: continue 
+            # a = torch.log_softmax(d, dim=1)
+            #b = torch.softmax(torch.tensor([regularization_dist] * a.size(0), requires_grad=False), dim=1).to(a.device)
+            b = torch.tensor([regularization_dist] * d.size(0), requires_grad=False).to(d.device)
+            _klloss = F.kl_div(d.log(), b, None, None, 'sum')
+            kl_losses.append(_klloss) 
 
-
-        # For condlsq.py / attention distribution regularization
-        if _enable_condlsq_regularization:
-            kl_losses = []
-            for d in raw:
-                if d == None: continue 
-                a = torch.log_softmax(d, dim=1)
-                b = torch.softmax(torch.tensor([regularization_dist] * a.size(0), requires_grad=False), dim=1).to(a.device)
-                kl_losses.append(kl_criterion(a, b)) 
-            loss = criterion(outputs, targets) + cfg.regularization_w * torch.stack(kl_losses).mean()
-        else:
-            loss = criterion(outputs, targets)
-
+        loss = criterion(outputs, targets) + cfg.regularization_w * torch.stack(kl_losses).mean()
 
         loss.backward()
         if update_params:
@@ -444,7 +478,7 @@ def main(cfg: DictConfig) -> None:
         train_loss, train_acc1 = train(net, optimizer, trainloader, criterion, -1, cfg=cfg, _register_hook=True, monitors=monitors, logdata=logdata, update_params=False)
         print ("Write logs....")
 
-
+        
         exit()
 
 
