@@ -153,7 +153,7 @@ def replace_all(model, replacement_dict={}):
                 if isinstance(m, nn.BatchNorm2d):
                     new_module = replacement_dict[type(m)]
                     model._modules[module_name] = new_module(num_features=m.num_features, 
-                            eps=m.eps, momentum = m.momentum, affine=m.affine, track_running_stats=m.track_running_stats)
+                            eps=m.eps, momentum = m.momentum, affine=m.affine)
 
 
 
