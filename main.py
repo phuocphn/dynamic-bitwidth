@@ -57,7 +57,7 @@ def setup_network(dataset, arch, num_classes=10):
             net = preact_resnet32_cifar_standard(num_classes=num_classes)
 
 
-        if arch == "presnet20":
+        elif arch == "presnet20":
             net = preact_resnet20_cifar(num_classes=num_classes)
         elif arch == "presnet20-standard":
             net = preact_resnet20_cifar_standard(num_classes=num_classes)
