@@ -102,6 +102,24 @@ def tweak_network(net, bit, arch, train_conf, quant_mode, cfg):
                 '__last__': partial(linear_layer, bit=8),
             }
 
+        if train_scheme == "adabit":
+            from quantizer.adabit import QConv2d, QConv2d8bit, SwitchBN2d
+            input_conv_layer = QConv2d8bit
+            conv_layer = QConv2d
+            # linear_layer = LinearLSQ
+            replacement_dict = {
+                nn.Conv2d: partial(conv_layer, bit=bit),
+                nn.Linear: nn.Linear
+                nn.BatchNorm2d: SwitchBN2d
+            }
+            exception_dict = {
+                '__first__': input_conv_layer,
+                '__last__': nn.Linear,
+            }
+
+
+
+
 
         if train_scheme == "condconv":
             from quantizer.condconv import Dynamic_conv2d
