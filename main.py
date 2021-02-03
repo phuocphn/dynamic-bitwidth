@@ -213,8 +213,8 @@ def train(net, optimizer, trainloader, criterion, epoch, print_freq=10, cfg=None
 
 
     else:
-        print ("Unexpected regularization --- Exit....")
-        exit()
+        #print ("Unexpected regularization --- Exit....")
+        #exit()
         regularization_dist = list(np.array([1.0/cfg.K] * cfg.K, dtype=np.float32))
 
     if _register_hook:
@@ -478,7 +478,7 @@ def main(cfg: DictConfig) -> None:
         train_loss, train_acc1 = train(net, optimizer, trainloader, criterion, -1, cfg=cfg, _register_hook=True, monitors=monitors, logdata=logdata, update_params=False)
         print ("Write logs....")
 
-        
+
         exit()
 
 
