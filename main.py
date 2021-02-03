@@ -174,6 +174,16 @@ def load_checkpoint(net, init_from):
         warnings.warn("No checkpoint file is provided !!!")
 
 kl_criterion = nn.KLDivLoss(reduction='batchmean')
+
+from quantizer.adabit import QConv2d, QConv2d8bit, SwitchBN2d
+from functools import partial
+
+def switch_bit(m, bits=8):
+    if type(m) in (QConv2d, QConv2d8bit, SwitchBN2d):
+        m.bits = bits
+
+
+
 def train(net, optimizer, trainloader, criterion, epoch, print_freq=10, cfg=None, _register_hook=False, monitors=None,logdata ={}, update_params=True, working_dir="/tmp"):
     print('\nEpoch: %d' % epoch)
     if update_params:
@@ -202,28 +212,37 @@ def train(net, optimizer, trainloader, criterion, epoch, print_freq=10, cfg=None
         inputs, targets = inputs.to(device), targets.to(device)
         optimizer.zero_grad()
 
-        net_outs = net(inputs)
-        if type(net_outs) in (list, tuple):
-            assert len(net_outs) == 2
-            outputs, raw  = net_outs
-        else:
-            outputs = net_outs
+
+        for bits in [8,6,5,4]:
+            net.apply(partial(switch_bit, bits=bits))
+            net_outs = net(inputs)
+            if type(net_outs) in (list, tuple):
+                assert len(net_outs) == 2
+                outputs, raw  = net_outs
+            else:
+                outputs = net_outs
 
 
-        # For condlsq.py / attention distribution regularization
-        if _enable_condlsq_regularization:
-            kl_losses = []
-            for d in raw:
-                if d == None: continue 
-                a = torch.log_softmax(d, dim=1)
-                b = torch.softmax(torch.tensor([regularization_dist] * a.size(0), requires_grad=False), dim=1).to(a.device)
-                kl_losses.append(kl_criterion(a, b)) 
-            loss = criterion(outputs, targets) + cfg.regularization_w * torch.stack(kl_losses).mean()
-        else:
-            loss = criterion(outputs, targets)
+            # For condlsq.py / attention distribution regularization
+            if _enable_condlsq_regularization:
+                kl_losses = []
+                for d in raw:
+                    if d == None: continue 
+                    a = torch.log_softmax(d, dim=1)
+                    b = torch.softmax(torch.tensor([regularization_dist] * a.size(0), requires_grad=False), dim=1).to(a.device)
+                    kl_losses.append(kl_criterion(a, b)) 
+                loss = criterion(outputs, targets) + cfg.regularization_w * torch.stack(kl_losses).mean()
+            else:
+                loss = criterion(outputs, targets)
 
 
-        loss.backward()
+            loss.backward()
+
+
+
+
+
+
         if update_params:
             optimizer.step()
         train_loss += loss.item()
@@ -290,25 +309,25 @@ def test(net, testloader, criterion, epoch, print_freq=10):
         for batch_idx, (inputs, targets) in enumerate(testloader):
             inputs, targets = inputs.to(device), targets.to(device)
             
+            for bits in [8,6,5,4]:
+                net_outs = net(inputs)
+                if type(net_outs) in (list, tuple):
+                    assert len(net_outs) == 2
+                    outputs, raw  = net_outs
+                else:
+                    outputs = net_outs
 
-            net_outs = net(inputs)
-            if type(net_outs) in (list, tuple):
-                assert len(net_outs) == 2
-                outputs, raw  = net_outs
-            else:
-                outputs = net_outs
 
 
+                loss = criterion(outputs, targets)
+                test_loss += loss.item()
+                _, predicted = outputs.max(1)
+                total += targets.size(0)
+                correct += predicted.eq(targets).sum().item()
 
-            loss = criterion(outputs, targets)
-            test_loss += loss.item()
-            _, predicted = outputs.max(1)
-            total += targets.size(0)
-            correct += predicted.eq(targets).sum().item()
-
-            if batch_idx % print_freq == 0:
-                print ("[Test] Epoch=", epoch, " BatchID=", batch_idx, 'Loss: %.3f | Acc: %.3f%% (%d/%d)' \
-                    % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
+                if batch_idx % print_freq == 0:
+                    print ("[Test] bit=", bits, "Epoch=", epoch, " BatchID=", batch_idx, 'Loss: %.3f | Acc: %.3f%% (%d/%d)' \
+                        % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
 
     acc = 100. * correct / total
     return (test_loss / batch_idx, correct / total, acc)
@@ -356,6 +375,11 @@ def create_train_params(model, main_wd, delta_wd, skip_keys, verbose=False):
             normal_params.append(param)
     return [{'params': stepsize_params, 'weight_decay': delta_wd }, 
              {'params': normal_params, 'weight_decay': main_wd}]
+
+
+
+
+
 
 
 
