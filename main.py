@@ -108,8 +108,8 @@ def tweak_network(net, bit, arch, train_conf, quant_mode, cfg):
             conv_layer = QConv2d
             # linear_layer = LinearLSQ
             replacement_dict = {
-                nn.Conv2d: partial(conv_layer, bit=bit),
-                nn.Linear: nn.Linear
+                nn.Conv2d: conv_layer, 
+                nn.Linear: nn.Linear,
                 nn.BatchNorm2d: SwitchBN2d
             }
             exception_dict = {

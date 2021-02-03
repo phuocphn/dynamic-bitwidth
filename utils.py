@@ -150,6 +150,12 @@ def replace_all(model, replacement_dict={}):
                     model._modules[module_name] = new_module(in_features=m.in_features, 
                             out_features=m.out_features,
                             bias=(m.bias!=None))
+                if isinstance(m, nn.BatchNorm2d):
+                    new_module = replacement_dict[type(m)]
+                    model._modules[module_name] = new_module(num_features=m.num_features, 
+                            eps=m.eps, momentum = m.momentum, affine=m.affine, track_running_stats=m.track_running_stats)
+
+
 
             elif len(model._modules[module_name]._modules) > 0:
                 __replace_module(model._modules[module_name])
