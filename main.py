@@ -137,17 +137,17 @@ def train(net, optimizer, trainloader, criterion, epoch, print_freq=10, cfg=None
     total = 0
 
     if hasattr(cfg, "regularization_dist"):
-        # regularization_dist = list(cfg.regularization_dist)
-        a_s = np.linspace(0,1,350, dtype=np.double) * 1.0
-        a = a_s[epoch]
-        bc = 1.0 - a
-        c = bc * 1.0/3.0
-        b = bc * 2.0/3.0
-        delta = 1.0 - (a+b+c)
-        c = c + delta
+        regularization_dist = list(cfg.regularization_dist)
+        # a_s = np.linspace(0,1,350, dtype=np.double) * 1.0
+        # a = a_s[epoch]
+        # bc = 1.0 - a
+        # c = bc * 1.0/3.0
+        # b = bc * 2.0/3.0
+        # delta = 1.0 - (a+b+c)
+        # c = c + delta
 
-        assert float(a)+float(b)+float(c) == 1.00
-        regularization_dist = [float(a), float(b), float(c)]
+        # assert float(a)+float(b)+float(c) == 1.00
+        # regularization_dist = [float(a), float(b), float(c)]
 
     else:
         regularization_dist = list(np.array([1.0/cfg.K] * cfg.K, dtype=np.float32))
