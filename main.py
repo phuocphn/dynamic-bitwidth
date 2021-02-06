@@ -130,7 +130,7 @@ def tweak_network(net, bit, arch, train_conf, quant_mode, cfg):
 
         if train_scheme == "condlsqconv":
             from quantizer.condlsq import Dynamic_LSQConv2d
-            replacement_dict = { nn.Conv2d: partial(Dynamic_LSQConv2d, K=cfg.K)}
+            replacement_dict = { nn.Conv2d: partial(Dynamic_LSQConv2d, K=cfg.K, bit=bit)}
             exception_dict = {}
             # exception_dict = { '__first__': nn.Conv2d,  '__last__': nn.Linear,}         
 
@@ -213,35 +213,30 @@ def train(net, optimizer, trainloader, criterion, epoch, print_freq=10, cfg=None
         optimizer.zero_grad()
 
 
-        for bits in [8,6,5,4]:
-            net.apply(partial(switch_bit, bits=bits))
-            net_outs = net(inputs)
-            if type(net_outs) in (list, tuple):
-                assert len(net_outs) == 2
-                outputs, raw  = net_outs
-            else:
-                outputs = net_outs
+        # for bits in [8,6,5,4]:
+        # net.apply(partial(switch_bit, bits=bits))
+        net_outs = net(inputs)
+        if type(net_outs) in (list, tuple):
+            assert len(net_outs) == 2
+            outputs, raw  = net_outs
+        else:
+            outputs = net_outs
 
 
-            # For condlsq.py / attention distribution regularization
-            if _enable_condlsq_regularization:
-                kl_losses = []
-                for d in raw:
-                    if d == None: continue 
-                    a = torch.log_softmax(d, dim=1)
-                    b = torch.softmax(torch.tensor([regularization_dist] * a.size(0), requires_grad=False), dim=1).to(a.device)
-                    kl_losses.append(kl_criterion(a, b)) 
-                loss = criterion(outputs, targets) + cfg.regularization_w * torch.stack(kl_losses).mean()
-            else:
-                loss = criterion(outputs, targets)
+        # For condlsq.py / attention distribution regularization
+        if _enable_condlsq_regularization:
+            kl_losses = []
+            for d in raw:
+                if d == None: continue 
+                a = torch.log_softmax(d, dim=1)
+                b = torch.softmax(torch.tensor([regularization_dist] * a.size(0), requires_grad=False), dim=1).to(a.device)
+                kl_losses.append(kl_criterion(a, b)) 
+            loss = criterion(outputs, targets) + cfg.regularization_w * torch.stack(kl_losses).mean()
+        else:
+            loss = criterion(outputs, targets)
 
 
-            loss.backward()
-
-
-
-
-
+        loss.backward()
 
         if update_params:
             optimizer.step()
@@ -309,25 +304,25 @@ def test(net, testloader, criterion, epoch, print_freq=10):
         for batch_idx, (inputs, targets) in enumerate(testloader):
             inputs, targets = inputs.to(device), targets.to(device)
             
-            for bits in [8,6,5,4]:
-                net_outs = net(inputs)
-                if type(net_outs) in (list, tuple):
-                    assert len(net_outs) == 2
-                    outputs, raw  = net_outs
-                else:
-                    outputs = net_outs
+            # for bits in [8,6,5,4]:
+            net_outs = net(inputs)
+            if type(net_outs) in (list, tuple):
+                assert len(net_outs) == 2
+                outputs, raw  = net_outs
+            else:
+                outputs = net_outs
 
 
 
-                loss = criterion(outputs, targets)
-                test_loss += loss.item()
-                _, predicted = outputs.max(1)
-                total += targets.size(0)
-                correct += predicted.eq(targets).sum().item()
+            loss = criterion(outputs, targets)
+            test_loss += loss.item()
+            _, predicted = outputs.max(1)
+            total += targets.size(0)
+            correct += predicted.eq(targets).sum().item()
 
-                if batch_idx % print_freq == 0:
-                    print ("[Test] bit=", bits, "Epoch=", epoch, " BatchID=", batch_idx, 'Loss: %.3f | Acc: %.3f%% (%d/%d)' \
-                        % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
+            if batch_idx % print_freq == 0:
+                print ("[Test] ",  "Epoch=", epoch, " BatchID=", batch_idx, 'Loss: %.3f | Acc: %.3f%% (%d/%d)' \
+                    % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
 
     acc = 100. * correct / total
     return (test_loss / batch_idx, correct / total, acc)

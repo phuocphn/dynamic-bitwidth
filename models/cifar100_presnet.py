@@ -216,6 +216,7 @@ class PreAct_ResNet_Cifar(nn.Module):
 
     def __init__(self, block, layers, num_classes=10):
         super(PreAct_ResNet_Cifar, self).__init__()
+        self.layers = layers
         self.inplanes = 16
         self.conv1 = nn.Conv2d(3, 16, kernel_size=3, stride=1, padding=1, bias=False)
         self.layer1 = self._make_layer(block, 16, layers[0])
@@ -259,20 +260,26 @@ class PreAct_ResNet_Cifar(nn.Module):
         x, raw1 = self.layer1[0](x)
         x, raw2 = self.layer1[1](x)
         x, raw3 = self.layer1[2](x)
-        x, raw4 = self.layer1[3](x)
-        x, raw5 = self.layer1[4](x)
+
+        if sum(self.layers) == sum([5,5,5]):
+            x, raw4 = self.layer1[3](x)
+            x, raw5 = self.layer1[4](x)
 
         x, raw6 = self.layer2[0](x)
         x, raw7 = self.layer2[1](x)
         x, raw8 = self.layer2[2](x)
-        x, raw9 = self.layer2[3](x)
-        x, raw10 = self.layer2[4](x)
+
+        if sum(self.layers) == sum([5,5,5]):
+            x, raw9 = self.layer2[3](x)
+            x, raw10 = self.layer2[4](x)
 
         x, raw11 = self.layer3[0](x)
         x, raw12 = self.layer3[1](x)
         x, raw13 = self.layer3[2](x)
-        x, raw14 = self.layer3[3](x)
-        x, raw15 = self.layer3[4](x)
+
+        if sum(self.layers) == sum([5,5,5]):
+            x, raw14 = self.layer3[3](x)
+            x, raw15 = self.layer3[4](x)
 
         x = self.bn(x)
         x = self.relu(x)
@@ -280,8 +287,12 @@ class PreAct_ResNet_Cifar(nn.Module):
         x = x.view(x.size(0), -1)
         x = self.fc(x)
 
-        return x, [*raw1, *raw2, *raw3, *raw4, *raw5, *raw6, *raw7, *raw8, *raw9, *raw10, *raw11, *raw12, *raw13, *raw14, *raw15]
+        
+        if sum(self.layers) == sum([5,5,5]):
+            return x, [*raw1, *raw2, *raw3, *raw4, *raw5, *raw6, *raw7, *raw8, *raw9, *raw10, *raw11, *raw12, *raw13, *raw14, *raw15]
 
+        if sum(self.layers) == sum([3,3,3]):
+            return x, [*raw1, *raw2, *raw3, *raw6, *raw7, *raw8, *raw11, *raw12, *raw13]
 
 # def resnet20_cifar(**kwargs):
 #     model = ResNet_Cifar(BasicBlock, [3, 3, 3], **kwargs)
