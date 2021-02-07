@@ -30,9 +30,9 @@ class attention2d(nn.Module):
             hidden_planes = int(in_channels*ratios)+1
         else:
             hidden_planes = K
-        self.fc1 = nn.Conv2d(in_channels, hidden_planes, 1, bias=False)
+        # self.fc1 = nn.Conv2d(in_channels, hidden_planes, 1, bias=False)
         # self.bn = nn.BatchNorm2d(hidden_planes)
-        self.fc2 = nn.Conv2d(hidden_planes, K, 1, bias=True)
+        self.fc2 = nn.Conv2d(in_channels, K, 1, bias=True)
         self.temperature = temperature
         if init_weight:
             self._initialize_weights()
@@ -56,7 +56,7 @@ class attention2d(nn.Module):
 
     def forward(self, x):
         x = self.avgpool(x)
-        x = self.fc1(x)
+        # x = self.fc1(x)
         # x = F.relu(x)
         x = self.fc2(x).view(x.size(0), -1)
         return gradient_approximation(x, self.temperature), x
