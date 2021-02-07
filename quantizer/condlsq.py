@@ -57,7 +57,7 @@ class attention2d(nn.Module):
     def forward(self, x):
         x = self.avgpool(x)
         x = self.fc1(x)
-        x = F.relu(x)
+        # x = F.relu(x)
         x = self.fc2(x).view(x.size(0), -1)
         return gradient_approximation(x, self.temperature), x
 
