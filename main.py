@@ -171,19 +171,33 @@ def load_checkpoint(net, init_from):
                 loaded_params["module." + k] = vnew
             else:
                 vnew = v.clone()
-                if "attention" in k: continue 
+                #if "attention" in k: continue 
+                if vnew.dim() == 1:
+                    if "attention.fc2.bias" in k:
+                        vnew = vnew.repeat(3)
                 if vnew.dim() == 2 and "fc" not in k:
                     vnew = vnew.repeat(3,1)
                 if v.dim() == 4:
-                    if "attention" in k:
+                    if "attention.fc2.weight" in k:
                         #pass
-                        continue
-                        #vnew = vnew.repeat(10,1,1,1)
+                        #continue
+                        print ("Im here.............(before v.repeat): ", k, vnew.size())
+                        #exit()
+                        vnew = vnew.repeat(3,1,1,1)
                 if v.dim() == 5:
                     vnew = vnew.repeat(3,1,1,1,1)
                 loaded_params[k] = vnew
 
         net_state_dict = net.state_dict()
+        print ("module.layer1.0.conv1.attention.fc1.weight: ", net_state_dict["module.layer1.0.conv1.attention.fc1.weight"].size())
+
+        print ("module.layer1.0.conv1.attention.fc2.weight ", net_state_dict["module.layer1.0.conv1.attention.fc2.weight"].size())
+        for k in net_state_dict.keys():
+            if "attention" in k:
+                print ("Set to None: ", k)
+                net_state_dict[k] = None
+
+        #exit()
         net_state_dict.update(loaded_params)
         net.load_state_dict(net_state_dict)
     else:
