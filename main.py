@@ -163,15 +163,33 @@ def load_checkpoint(net, init_from):
         loaded_params = {}
         for k, v in checkpoint['net'].items():
             if not k.startswith("module."):
-                loaded_params["module." + k] = v
+                vnew = v.clone()
+                if v.dim() == 2:
+                    vnew = v.repeat(3,1)
+                if v.dim() == 4:
+                    #vnew = v.repeat(3,1,1,1)
+                    pass
+                loaded_params["module." + k] = vnew
             else:
-                loaded_params[k] = v
+                vnew = v.clone()
+                if "attention" in k: continue 
+                if vnew.dim() == 2 and "fc" not in k:
+                    vnew = vnew.repeat(3,1)
+                if v.dim() == 4:
+                    if "attention" in k:
+                        #pass
+                        continue
+                        #vnew = vnew.repeat(10,1,1,1)
+                if v.dim() == 5:
+                    vnew = vnew.repeat(3,1,1,1,1)
+                loaded_params[k] = vnew
 
         net_state_dict = net.state_dict()
         net_state_dict.update(loaded_params)
         net.load_state_dict(net_state_dict)
     else:
         warnings.warn("No checkpoint file is provided !!!")
+
 
 kl_criterion = nn.KLDivLoss(reduction='batchmean')
 
