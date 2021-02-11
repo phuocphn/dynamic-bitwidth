@@ -52,11 +52,11 @@ def setup_network(dataset, arch, num_classes=10, standard_forward=False):
 
     elif dataset == "cifar100" or dataset == "cifar10":
         if arch == "presnet32":
-            net = preact_resnet32_cifar(num_classes=num_classes, standard_forward)
+            net = preact_resnet32_cifar(num_classes=num_classes, standard_forward=standard_forward)
         # elif arch == "presnet32-standard":
         #     net = preact_resnet32_cifar_standard(num_classes=num_classes)
         elif arch == "presnet20":
-            net = preact_resnet20_cifar(num_classes=num_classes, standard_forward)
+            net = preact_resnet20_cifar(num_classes=num_classes, standard_forward=standard_forward)
         # elif arch == "presnet20-standard":
         #     net = preact_resnet20_cifar_standard(num_classes=num_classes)
         else:
