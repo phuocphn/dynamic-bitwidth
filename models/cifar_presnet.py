@@ -237,6 +237,7 @@ class PreAct_ResNet_Cifar(nn.Module):
         super(PreAct_ResNet_Cifar, self).__init__()
         self.layers = layers
         self.inplanes = 16
+        self.standard_forward = standard_forward
 
         self.conv1 = nn.Conv2d(3, 16, kernel_size=3, stride=1, padding=1, bias=False)
         self.layer1 = self._make_layer(block, 16, layers[0])
@@ -246,7 +247,6 @@ class PreAct_ResNet_Cifar(nn.Module):
         self.relu = nn.ReLU(inplace=True)
         self.avgpool = nn.AvgPool2d(8, stride=1)
         self.fc = nn.Linear(64*block.expansion, num_classes)
-        self.standard_forward = standard_forward
 
         # assertion
         if num_classes == 100:
