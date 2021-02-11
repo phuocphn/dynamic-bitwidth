@@ -214,7 +214,7 @@ class PreActBasicBlock(nn.Module):
 
 class PreAct_ResNet_Cifar(nn.Module):
 
-    def __init__(self, block, layers, num_classes=10):
+    def __init__(self, block, layers, num_classes=10, standard_forward=False):
         super(PreAct_ResNet_Cifar, self).__init__()
         self.layers = layers
         self.inplanes = 16
@@ -226,6 +226,14 @@ class PreAct_ResNet_Cifar(nn.Module):
         self.relu = nn.ReLU(inplace=True)
         self.avgpool = nn.AvgPool2d(8, stride=1)
         self.fc = nn.Linear(64*block.expansion, num_classes)
+        self.standard_forward = standard_forward
+
+        # assertion
+        if num_classes == 100:
+            assert sum([5,5,5]) == sum(self.layers)
+        if num_classes == 10:
+            assert sum([3,3,3]) == sum(self.layers)
+
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -255,6 +263,22 @@ class PreAct_ResNet_Cifar(nn.Module):
         return nn.Sequential(*layers)
 
     def forward(self, x):
+        if self.standard_forward:
+            x = self.conv1(x)
+            x = self.layer1(x)
+            x = self.layer2(x)
+            x = self.layer3(x)
+            x = self.bn(x)
+            x = self.relu(x)
+            x = self.avgpool(x)
+            x = x.view(x.size(0), -1)
+            x = self.fc(x)
+
+            return x
+
+
+        # ==============================================
+
         x = self.conv1(x)
 
         x, raw1 = self.layer1[0](x)

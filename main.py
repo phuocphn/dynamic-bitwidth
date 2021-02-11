@@ -39,7 +39,7 @@ import matplotlib.gridspec as gridspec
 # from quantizer.uniq import UniQQuantizer
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-def setup_network(dataset, arch, num_classes=10):
+def setup_network(dataset, arch, num_classes=10, standard_forward=False):
     print('==> Building model..')
     if dataset == "imagenet":
         models = {
@@ -52,11 +52,11 @@ def setup_network(dataset, arch, num_classes=10):
 
     elif dataset == "cifar100" or dataset == "cifar10":
         if arch == "presnet32":
-            net = preact_resnet32_cifar(num_classes=num_classes)
+            net = preact_resnet32_cifar(num_classes=num_classes, standard_forward)
         # elif arch == "presnet32-standard":
         #     net = preact_resnet32_cifar_standard(num_classes=num_classes)
         elif arch == "presnet20":
-            net = preact_resnet20_cifar(num_classes=num_classes)
+            net = preact_resnet20_cifar(num_classes=num_classes, standard_forward)
         # elif arch == "presnet20-standard":
         #     net = preact_resnet20_cifar_standard(num_classes=num_classes)
         else:
@@ -438,7 +438,9 @@ def main(cfg: DictConfig) -> None:
         batch_size=cfg.dataset.batch_size,
         data_root=cfg.dataset.data_root)
 
-    net = setup_network(cfg.dataset.name, cfg.dataset.arch, cfg.dataset.num_classes)
+
+    is_standard_forward = True if cfg.quantizer.bit == 32 else False
+    net = setup_network(cfg.dataset.name, cfg.dataset.arch, cfg.dataset.num_classes, is_standard_forward)
     net = tweak_network(net,
                         bit=cfg.quantizer.bit,
                         train_conf=cfg.train_conf,
