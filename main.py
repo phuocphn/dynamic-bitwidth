@@ -421,7 +421,7 @@ def create_train_params(model, main_wd, delta_wd, skip_keys, verbose=False):
 def main(cfg: DictConfig) -> None:
     print("Params: \n")
     print(OmegaConf.to_yaml(cfg))
-    time.sleep(50)
+    time.sleep(10)
 
     best_acc = 0
     start_epoch = 0
@@ -457,7 +457,7 @@ def main(cfg: DictConfig) -> None:
     print("Number of learnable parameters: ",
           sum(p.numel() for p in net.parameters() if p.requires_grad) / 1e6,
           "M")
-    time.sleep(30)
+    time.sleep(10)
     if getattr(cfg, 'enable_load_attention_checkpoint', False) == True: 
         load_attention_checkpoint(net, init_from=cfg.dataset.init_from)
     else:

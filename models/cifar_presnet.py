@@ -10,6 +10,7 @@ import torch
 import torch.nn as nn
 import math
 from quantizer.condconv import Dynamic_conv2d
+from functools import partial
 
 def conv3x3(in_planes, out_planes, stride=1):
     " 3x3 convolution with padding "
@@ -89,7 +90,7 @@ def conv3x3(in_planes, out_planes, stride=1):
 class PreActBasicBlock(nn.Module):
     expansion = 1
 
-    def __init__(self, inplanes, planes, stride=1, downsample=None):
+    def __init__(self, inplanes, planes, stride=1, downsample=None, standard_forward=False):
         super(PreActBasicBlock, self).__init__()
         self.bn1 = nn.BatchNorm2d(inplanes)
         self.relu = nn.ReLU(inplace=True)
@@ -98,8 +99,26 @@ class PreActBasicBlock(nn.Module):
         self.conv2 = conv3x3(planes, planes)
         self.downsample = downsample
         self.stride = stride
+        self.standard_forward = standard_forward
 
     def forward(self, x):
+        if self.standard_forward:
+            residual = x
+            out = self.bn1(x)
+            out = self.relu(out)
+            
+            if self.downsample is not None:
+                residual = self.downsample(out)
+
+            out = self.conv1(out)
+            out = self.bn2(out)
+            out = self.relu(out)
+            out = self.conv2(out)
+
+            out += residual
+            return out
+
+
         residual = x
         out = self.bn1(x)
         out = self.relu(out)
@@ -218,6 +237,8 @@ class PreAct_ResNet_Cifar(nn.Module):
         super(PreAct_ResNet_Cifar, self).__init__()
         self.layers = layers
         self.inplanes = 16
+
+        block = partial(block, standard_forward=standard_forward)
         self.conv1 = nn.Conv2d(3, 16, kernel_size=3, stride=1, padding=1, bias=False)
         self.layer1 = self._make_layer(block, 16, layers[0])
         self.layer2 = self._make_layer(block, 32, layers[1], stride=2)
