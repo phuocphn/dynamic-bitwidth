@@ -1,10 +1,10 @@
 # @package _group_
 name: cifar10
 data_root: ~/data
-arch: presnet32
+arch: presnet20
 batch_size: 128
 init_from: None
 num_classes: 10
-epochs: 120
+epochs: 200
 num_calibration_batches: 10
 

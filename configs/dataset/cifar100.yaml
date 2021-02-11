@@ -4,7 +4,7 @@ data_root: ~/data
 arch: presnet32
 batch_size: 128
 init_from: ~/pretrained_models/151.cifar100.presnet32.32bit/ckpt_best.pth
-epochs: 120
+epochs: 200
 num_classes: 100
 num_calibration_batches: 100
 

@@ -24,9 +24,9 @@ import utils
 import hydra
 from omegaconf import DictConfig, OmegaConf
 from hydra.utils import get_original_cwd
-from models.cifar100_presnet import preact_resnet32_cifar, preact_resnet20_cifar
-from models.cifar100_presnet_standard import preact_resnet32_cifar as preact_resnet32_cifar_standard
-from models.cifar100_presnet_standard import preact_resnet20_cifar as preact_resnet20_cifar_standard
+from models.cifar_presnet import preact_resnet32_cifar, preact_resnet20_cifar
+# from models.cifar100_presnet_standard import preact_resnet32_cifar as preact_resnet32_cifar_standard
+# from models.cifar100_presnet_standard import preact_resnet20_cifar as preact_resnet20_cifar_standard
 
 
 import matplotlib
@@ -53,16 +53,12 @@ def setup_network(dataset, arch, num_classes=10):
     elif dataset == "cifar100" or dataset == "cifar10":
         if arch == "presnet32":
             net = preact_resnet32_cifar(num_classes=num_classes)
-        elif arch == "presnet32-standard":
-            net = preact_resnet32_cifar_standard(num_classes=num_classes)
-
-
-        if arch == "presnet20":
+        # elif arch == "presnet32-standard":
+        #     net = preact_resnet32_cifar_standard(num_classes=num_classes)
+        elif arch == "presnet20":
             net = preact_resnet20_cifar(num_classes=num_classes)
-        elif arch == "presnet20-standard":
-            net = preact_resnet20_cifar_standard(num_classes=num_classes)
-
-
+        # elif arch == "presnet20-standard":
+        #     net = preact_resnet20_cifar_standard(num_classes=num_classes)
         else:
             raise ValueError("Unsupported")
     return net
@@ -152,9 +148,35 @@ def tweak_network(net, bit, arch, train_conf, quant_mode, cfg):
 
     return net
 
-def load_checkpoint(net, init_from):
+
+
+def load_normal_checkpoint(net, init_from):
     # Loading checkpoint
     # -----------------------------
+    print ("Load normal checkpoint...")
+    init_from = os.path.expanduser(init_from)
+    if init_from and os.path.isfile(init_from):
+        print('==> Initializing from checkpoint: ', init_from)
+        checkpoint = torch.load(init_from)
+        loaded_params = {}
+        for k, v in checkpoint['net'].items():
+            if not k.startswith("module."):
+                loaded_params["module." + k] = v
+            else:
+                loaded_params[k] = v
+
+        net_state_dict = net.state_dict()
+        net_state_dict.update(loaded_params)
+        net.load_state_dict(net_state_dict)
+    else:
+        warnings.warn("No checkpoint file is provided !!!")
+
+
+def load_attention_checkpoint(net, init_from):
+
+    # Loading checkpoint
+    # -----------------------------
+    print ("Load attention checkpoint (pre-trained models with K=1)")
     init_from = os.path.expanduser(init_from)
     if init_from and os.path.isfile(init_from):
         print('==> Initializing from checkpoint: ', init_from)
@@ -399,7 +421,7 @@ def create_train_params(model, main_wd, delta_wd, skip_keys, verbose=False):
 def main(cfg: DictConfig) -> None:
     print("Params: \n")
     print(OmegaConf.to_yaml(cfg))
-    time.sleep(10)
+    time.sleep(50)
 
     best_acc = 0
     start_epoch = 0
@@ -433,8 +455,14 @@ def main(cfg: DictConfig) -> None:
     print("Number of learnable parameters: ",
           sum(p.numel() for p in net.parameters() if p.requires_grad) / 1e6,
           "M")
-    time.sleep(5)
-    load_checkpoint(net, init_from=cfg.dataset.init_from)
+    time.sleep(30)
+    if getattr(cfg, 'enable_load_attention_checkpoint', False) == True: 
+        load_attention_checkpoint(net, init_from=cfg.dataset.init_from)
+    else:
+        load_normal_checkpoint(net, init_from=cfg.dataset.init_from)
+
+
+
     params = create_train_params(model=net, main_wd=cfg.quantizer.wd, delta_wd=0, skip_keys=['.delta', '.alpha'], verbose=cfg.verbose)
     criterion = nn.CrossEntropyLoss()
 
