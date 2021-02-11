@@ -438,8 +438,10 @@ def main(cfg: DictConfig) -> None:
         batch_size=cfg.dataset.batch_size,
         data_root=cfg.dataset.data_root)
 
-
-    is_standard_forward = True if (cfg.quantizer.bit == 32 and cfg.train_conf == "train.fp32") else False
+    if (cfg.quantizer.bit == 32 and cfg.train_conf == "train.fp32") or (cfg.train_conf == "quan.lsq"):
+        is_standard_forward = True
+    else:
+        is_standard_forward = False
     net = setup_network(cfg.dataset.name, cfg.dataset.arch, cfg.dataset.num_classes, is_standard_forward)
     net = tweak_network(net,
                         bit=cfg.quantizer.bit,
