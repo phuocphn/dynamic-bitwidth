@@ -238,7 +238,6 @@ class PreAct_ResNet_Cifar(nn.Module):
         self.layers = layers
         self.inplanes = 16
 
-        block = partial(block, standard_forward=standard_forward)
         self.conv1 = nn.Conv2d(3, 16, kernel_size=3, stride=1, padding=1, bias=False)
         self.layer1 = self._make_layer(block, 16, layers[0])
         self.layer2 = self._make_layer(block, 32, layers[1], stride=2)
@@ -277,10 +276,10 @@ class PreAct_ResNet_Cifar(nn.Module):
             )
 
         layers = []
-        layers.append(block(self.inplanes, planes, stride, downsample))
+        layers.append(block(self.inplanes, planes, stride, downsample, standard_forward=self.standard_forward))
         self.inplanes = planes*block.expansion
         for _ in range(1, blocks):
-            layers.append(block(self.inplanes, planes))
+            layers.append(block(self.inplanes, planes, standard_forward=self.standard_forward))
         return nn.Sequential(*layers)
 
     def forward(self, x):
