@@ -118,20 +118,23 @@ class ActivationAtentionQuantizer(torch.nn.Module):
 
 
 class WeightAtentionQuantizer(torch.nn.Module):
-    def __init__(self, bit=None, K=4):
+    def __init__(self, bit=None, K=4, is_activation=False):
         super(WeightAtentionQuantizer,self).__init__()
 
         self.alpha = nn.Parameter(torch.randn(K, 1))
-        self.bit = [bit] * K
+        self.bit = list(np.array(range(K)) + 2)
         self.K = K
+        self.is_activation = is_activation
         self.register_buffer('init_state', torch.zeros(1))
                 
+        if is_activation:
+            print ("Un-expected behaviour")
+        else:
+            Qns = [-2 ** (bit- 1) for bit in np.array(range(K)) + 2 ]
+            self.register_buffer('Qns', torch.tensor(Qns, requires_grad=False).view(-1, 1))
 
-        Qns = [-2 ** (_bit- 1) for _bit in [bit] * K ]
-        self.register_buffer('Qns', torch.tensor(Qns, requires_grad=False).view(-1, 1))
-
-        Qps = [2 ** (_bit-1) -1 for _bit in [bit] * K]
-        self.register_buffer('Qps', torch.tensor(Qps, requires_grad=False).view(-1, 1))
+            Qps = [2 ** (bit-1) -1 for bit in np.array(range(K)) + 2]
+            self.register_buffer('Qps', torch.tensor(Qps, requires_grad=False).view(-1, 1))
 
     def forward(self, x):
         if self.training and self.init_state == 0:
@@ -146,8 +149,7 @@ class WeightAtentionQuantizer(torch.nn.Module):
         return x_q
 
     def __repr__(self):
-        return self.__class__.__name__ + " (bit=%s, is_activation=%s)" % (self.bit, False)
-
+        return self.__class__.__name__ + " (bit=%s, is_activation=%s)" % (self.bit, self.is_activation)
 
 
 
