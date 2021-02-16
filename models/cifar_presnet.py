@@ -108,9 +108,9 @@ class PreActBasicBlock(nn.Module):
             # out = self.relu(out)
             
             if self.downsample is not None:
-                residual = self.downsample(out)
+                residual = self.downsample(x)
 
-            out = self.conv1(out)
+            out = self.conv1(x)
             # out = self.bn2(out)
             # out = self.relu(out)
             out = self.conv2(out)
@@ -125,9 +125,9 @@ class PreActBasicBlock(nn.Module):
         
         raw0 = None
         if self.downsample is not None:
-            residual, raw0 = self.downsample(out)
+            residual, raw0 = self.downsample(x)
 
-        out, raw1 = self.conv1(out)
+        out, raw1 = self.conv1(x)
         # out = self.bn2(out)
         # out = self.relu(out)
         out, raw2 = self.conv2(out)
