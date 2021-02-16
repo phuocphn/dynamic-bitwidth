@@ -92,10 +92,10 @@ class PreActBasicBlock(nn.Module):
 
     def __init__(self, inplanes, planes, stride=1, downsample=None, standard_forward=False):
         super(PreActBasicBlock, self).__init__()
-        self.bn1 = nn.BatchNorm2d(inplanes)
-        self.relu = nn.ReLU(inplace=True)
+        # self.bn1 = nn.BatchNorm2d(inplanes)
+        # self.relu = nn.ReLU(inplace=True)
         self.conv1 = conv3x3(inplanes, planes, stride)
-        self.bn2 = nn.BatchNorm2d(planes)
+        # self.bn2 = nn.BatchNorm2d(planes)
         self.conv2 = conv3x3(planes, planes)
         self.downsample = downsample
         self.stride = stride
