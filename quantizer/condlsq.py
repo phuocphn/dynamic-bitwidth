@@ -152,7 +152,7 @@ class WeightAtentionQuantizer(torch.nn.Module):
 
 
 class Dynamic_LSQConv2d(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size, ratio=0.25, stride=1, padding=0, dilation=1, groups=1, bias=True, K=4,temperature=34, init_weight=True, bit=2):
+    def __init__(self, in_channels, out_channels, kernel_size, ratio=0.25, stride=1, padding=0, dilation=1, groups=1, bias=True, K=4,temperature=34, init_weight=True, bit=2 ):
         super(Dynamic_LSQConv2d, self).__init__()
         assert in_channels%groups==0
         self.in_channels = in_channels
@@ -177,6 +177,13 @@ class Dynamic_LSQConv2d(nn.Module):
         if init_weight:
             self._initialize_weights()
 
+        if in_channels != 3:
+            bns = []
+            for i in range(K):
+                bns.append(nn.BatchNorm2d(num_features=in_channels, ))
+            self.bn = nn.ModuleList(bns)
+
+
         #TODO åˆå§‹åŒ–
     def _initialize_weights(self):
         for i in range(self.K):
@@ -188,6 +195,17 @@ class Dynamic_LSQConv2d(nn.Module):
 
     def forward(self, x):#
         softmax_attention, raw_attention = self.attention(x)
+        # batchnorm
+        if self.in_channels != 3:
+            x_outs = []
+            for i in range(self.K):
+                x_outs.append(self.bn[i] (x))
+
+            softmax_attention_T = softmax_attention.T.reshape(self.K, -1, 1, 1, 1)
+            x = (softmax_attention_T * torch.stack(x_outs)).sum(0)
+            x = F.relu(x)
+
+            
         batch_size, in_channels, height, width = x.size()
         if self.bit !=32:
             x = self.quan_a(x, softmax_attention)

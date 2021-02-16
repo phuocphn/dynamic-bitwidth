@@ -104,15 +104,15 @@ class PreActBasicBlock(nn.Module):
     def forward(self, x):
         if self.standard_forward:
             residual = x
-            out = self.bn1(x)
-            out = self.relu(out)
+            # out = self.bn1(x)
+            # out = self.relu(out)
             
             if self.downsample is not None:
                 residual = self.downsample(out)
 
             out = self.conv1(out)
-            out = self.bn2(out)
-            out = self.relu(out)
+            # out = self.bn2(out)
+            # out = self.relu(out)
             out = self.conv2(out)
 
             out += residual
@@ -120,16 +120,16 @@ class PreActBasicBlock(nn.Module):
 
 
         residual = x
-        out = self.bn1(x)
-        out = self.relu(out)
+        # out = self.bn1(x)
+        # out = self.relu(out)
         
         raw0 = None
         if self.downsample is not None:
             residual, raw0 = self.downsample(out)
 
         out, raw1 = self.conv1(out)
-        out = self.bn2(out)
-        out = self.relu(out)
+        # out = self.bn2(out)
+        # out = self.relu(out)
         out, raw2 = self.conv2(out)
 
         out += residual
