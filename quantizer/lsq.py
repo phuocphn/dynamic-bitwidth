@@ -25,7 +25,7 @@ class LSQQuantizer(t.nn.Module):
         super(LSQQuantizer,self).__init__()
 
         self.alpha = nn.Parameter(torch.Tensor(1))
-        self.bit = bit
+        self.bit = None
         self.is_activation = is_activation
         self.register_buffer('init_state', torch.zeros(1))        
         
@@ -36,15 +36,28 @@ class LSQQuantizer(t.nn.Module):
             self.Qn = -2 ** (self.bit - 1)
             self.Qp = 2 ** (self.bit - 1) - 1
 
-    def forward(self, x):
+    def forward(self, x, bit):
+        if self.is_activation:
+            Qn = 0
+            Qp = 2 ** bit - 1
+        else:
+            Qn = -2 ** (bit - 1)
+            Qp = 2 ** (bit - 1) - 1
+
+        coff = 8 - bit
+        if coff == 0:
+          coff = 1
+        corr_alpha = self.alpha * (2* coff)
+
+
         if self.training and self.init_state == 0:
-            self.alpha.data.copy_(2 * x.detach().abs().mean() / math.sqrt(self.Qp))
+            self.alpha.data.copy_(2 * x.detach().abs().mean() / math.sqrt(Qp))
             self.init_state.fill_(1)
             print (self.__class__.__name__, "Initializing step-size value ...")
         
-        g = 1.0 / math.sqrt(x.numel() * self.Qp)
-        _alpha = grad_scale(self.alpha, g)
-        x_q = round_pass((x / _alpha).clamp(self.Qn, self.Qp)) * _alpha
+        g = 1.0 / math.sqrt(x.numel() * Qp)
+        _alpha = grad_scale(corr_alpha, g)
+        x_q = round_pass((x / _alpha).clamp(Qn, Qp)) * _alpha
         return x_q
 
     def __repr__(self):
@@ -62,7 +75,6 @@ class Conv2dLSQ(nn.Conv2d):
 
         self.quan_w = LSQQuantizer(bit=bit, is_activation=False)
         self.quan_a = LSQQuantizer(bit=bit, is_activation=True)
-
         self.bit = bit
 
     def forward(self, x):
@@ -70,7 +82,7 @@ class Conv2dLSQ(nn.Conv2d):
             return F.conv2d(x, self.weight, self.bias, self.stride,
                             self.padding, self.dilation, self.groups)
         else:
-            return F.conv2d(self.quan_a(x), self.quan_w(self.weight), self.bias, self.stride,
+            return F.conv2d(self.quan_a(x, self.bit), self.quan_w(self.weight, self.bit), self.bias, self.stride,
                             self.padding, self.dilation, self.groups)
 
 class InputConv2dLSQ(nn.Conv2d):
@@ -91,7 +103,7 @@ class InputConv2dLSQ(nn.Conv2d):
             return F.conv2d(x, self.weight, self.bias, self.stride,
                             self.padding, self.dilation, self.groups)
         else:
-            return F.conv2d(self.quan_a(x), self.quan_w(self.weight), self.bias, self.stride,
+            return F.conv2d(self.quan_a(x, 8), self.quan_w(self.weight, 8), self.bias, self.stride,
                             self.padding, self.dilation, self.groups)
 
 class LinearLSQ(nn.Linear):
@@ -105,4 +117,4 @@ class LinearLSQ(nn.Linear):
         if self.bit == 32:
             return F.linear(x, self.weight, self.bias)
         else:
-            return F.linear(self.quan_a(x), self.quan_w(self.weight), self.bias)
+            return F.linear(self.quan_a(x, 8), self.quan_w(self.weight, 8), self.bias)
