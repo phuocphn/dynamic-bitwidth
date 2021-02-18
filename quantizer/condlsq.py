@@ -25,7 +25,8 @@ class attention2d(nn.Module):
     def __init__(self, in_channels, ratios, K, temperature, init_weight=True):
         super(attention2d, self).__init__()
         assert temperature%3==1
-        self.avgpool = nn.AdaptiveAvgPool2d(K)
+        self.avgpool = nn.AdaptiveAvgPool2d(1)
+        self.fc = nn.Linear(in_channels, K)
         self.sigmoid = nn.Sigmoid()
         # if in_channels!=3:
         #     hidden_planes = int(in_channels*ratios)+1
@@ -56,11 +57,13 @@ class attention2d(nn.Module):
 
 
     def forward(self, x):
-        x = self.sigmoid(self.avgpool(x))
+        # x = self.sigmoid(self.avgpool(x))
         # x = self.fc1(x)
         # x = F.relu(x)
         # x = self.fc2(x).view(x.size(0), -1)
+        x = self.avgpool(x)
         x = x.view(x.size(0), -1)
+        x = self.sigmoid(self.fc(x))
         return gradient_approximation(x, self.temperature), x
 
 
