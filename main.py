@@ -126,7 +126,7 @@ def tweak_network(net, bit, arch, train_conf, quant_mode, cfg):
 
         if train_scheme == "condlsqconv":
             from quantizer.condlsq import Dynamic_LSQConv2d
-            replacement_dict = { nn.Conv2d: partial(Dynamic_LSQConv2d, K=cfg.K, bit=bit)}
+            replacement_dict = { nn.Conv2d: partial(Dynamic_LSQConv2d, K=cfg.K, bit=bit, temperature=cfg.temperature)}
             exception_dict = {}
             # exception_dict = { '__first__': nn.Conv2d,  '__last__': nn.Linear,}         
 
