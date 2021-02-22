@@ -63,13 +63,13 @@ class attention2d(nn.Module):
 
 
 class ActivationAtentionQuantizer(torch.nn.Module):
-    def __init__(self, bit=2):
+    def __init__(self, bit=2, is_activation=True):
         super(ActivationAtentionQuantizer,self).__init__()
 
         self.alpha = nn.Parameter(torch.randn(1))
         self.bit = bit #list(np.array(range(K)) + 2)
         # self.K = K
-        self.is_activation = True
+        self.is_activation = is_activation
         self.register_buffer('init_state', torch.zeros(1))
                 
         # # if is_activation:
@@ -211,3 +211,6 @@ class Dynamic_LSQConv2d(nn.Module):
 
         output = output.view(batch_size, self.out_channels, output.size(-2), output.size(-1))
         return [output, raw_attention]
+
+
+

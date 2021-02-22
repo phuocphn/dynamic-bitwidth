@@ -126,10 +126,14 @@ def tweak_network(net, bit, arch, train_conf, quant_mode, cfg):
 
         if train_scheme == "condlsqconv":
             from quantizer.condlsq import Dynamic_LSQConv2d
+            from quantizer.lsq import Conv2dLSQ, InputConv2dLSQ, LinearLSQ
+            
             replacement_dict = { nn.Conv2d: partial(Dynamic_LSQConv2d, K=cfg.K, bit=bit)}
-            exception_dict = {}
-            # exception_dict = { '__first__': nn.Conv2d,  '__last__': nn.Linear,}         
-
+            # exception_dict = {}
+            exception_dict = {
+                '__first__': partial(Dynamic_LSQConv2d, bit=8),
+                '__last__': partial(LinearLSQ, bit=8),
+            }
 
 
         # if arch == "glouncv-mobilenetv2_w1":
