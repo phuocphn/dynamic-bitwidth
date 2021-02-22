@@ -125,7 +125,12 @@ class PreActBasicBlock(nn.Module):
         
         raw0 = None
         if self.downsample is not None:
-            residual, raw0 = self.downsample(out)
+            # residual, raw0 = self.downsample(out)
+            intermediates = self.downsample(out)
+            if type(intermediates) in (list, tuple):
+                residual, raw0 = intermediates
+            else:
+                residual = intermediates
 
         out, raw1 = self.conv1(out)
         out = self.bn2(out)
