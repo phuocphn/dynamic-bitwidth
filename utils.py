@@ -189,7 +189,7 @@ def replace_module(model, replacement_dict={}, exception_dict={}, arch="presnet1
         'fc': partial(NIPS2019_QLinear, bit=8)
     }
     """ 
-    assert arch in ["presnet32", "presnet32-standard","presnet20", "presnet20-standard", "presnet18", "glouncv-alexnet", "glouncv-alexnet-bn",  "postech-alexnet", "glouncv-presnet34", "glouncv-presnet50", "glouncv-mobilenetv2_w1"],\
+    assert arch in ["vgg-16", "presnet32", "presnet32-standard","presnet20", "presnet20-standard", "presnet18", "glouncv-alexnet", "glouncv-alexnet-bn",  "postech-alexnet", "glouncv-presnet34", "glouncv-presnet50", "glouncv-mobilenetv2_w1"],\
             ("Not support this type of architecture !")
 
     model = replace_all(model, replacement_dict=replacement_dict)
