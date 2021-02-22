@@ -162,7 +162,7 @@ class Dynamic_LSQConv2d(nn.Conv2d):
         # self.padding = padding[0]
         self.dilation = dilation
         self.groups = groups
-        self.bias = bias
+        #self.bias = bias
         self.K = K
         self.bit = bit 
         self.attention = attention2d(in_channels, ratio, K, temperature)
