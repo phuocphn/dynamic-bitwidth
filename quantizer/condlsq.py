@@ -67,21 +67,10 @@ class ActivationAtentionQuantizer(torch.nn.Module):
         super(ActivationAtentionQuantizer,self).__init__()
 
         self.alpha = nn.Parameter(torch.randn(1))
-        self.bit = bit #list(np.array(range(K)) + 2)
-        # self.K = K
+        self.bit = bit 
         self.is_activation = is_activation
         self.register_buffer('init_state', torch.zeros(1))
                 
-        # # if is_activation:
-        # # Qns = [0 for bit in [bit] * 4 ]
-        # self.register_buffer('Qns', torch.tensor(Qns, requires_grad=False).view(-1, 1))
-
-        # Qps = [2** bit -1 for bit in np.array(range(K)) + 2]
-        # self.register_buffer('Qps', torch.tensor(Qps, requires_grad=False).view(-1, 1))
-        # # else:
-        # #     print ("Un-expected behaviour")
-
-
         if self.is_activation:
             self.Qn = 0
             self.Qp = 2 ** self.bit - 1
@@ -101,17 +90,7 @@ class ActivationAtentionQuantizer(torch.nn.Module):
         _alpha = grad_scale(self.alpha, g)
         x_q = round_pass((x / _alpha).clamp(self.Qn, self.Qp)) * _alpha
         return x_q
-        
-        # runtime_Qns = torch.mm(attention, self.Qns*1.0)
-        # runtime_Qps = torch.mm(attention, self.Qps*1.0)
-        # runtime_alphas = torch.mm(attention, self.alpha)
 
-        # g = 1.0 / ( (x.numel() / x.size(0)) * runtime_Qps) ** 0.5
-        # _alpha = grad_scale(runtime_alphas, g)
-        # clipped = torch.max(torch.min(x/_alpha.view(-1, 1, 1,1), runtime_Qps.view(-1, 1,1,1)), runtime_Qns.view(-1,1,1,1))
-        # clipped = x/ _alpha.view(-1, 1,1,1)
-        # x_q = round_pass(clipped) * _alpha.view(-1,1,1,1)
-        # return x_q
 
     def __repr__(self):
         return self.__class__.__name__ + " (bit=%s, is_activation=%s)" % (self.bit, True)
@@ -210,7 +189,7 @@ class Dynamic_LSQConv2d(nn.Conv2d):
                               dilation=self.dilation, groups=self.groups * batch_size)
 
         output = output.view(batch_size, self.out_channels, output.size(-2), output.size(-1))
-        return [output, raw_attention]
+        return output
 
 
 
