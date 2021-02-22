@@ -25,6 +25,7 @@ import hydra
 from omegaconf import DictConfig, OmegaConf
 from hydra.utils import get_original_cwd
 from models.cifar_presnet import preact_resnet32_cifar, preact_resnet20_cifar
+from models.cifar_vgg import vgg16_bn
 # from models.cifar100_presnet_standard import preact_resnet32_cifar as preact_resnet32_cifar_standard
 # from models.cifar100_presnet_standard import preact_resnet20_cifar as preact_resnet20_cifar_standard
 
@@ -57,6 +58,8 @@ def setup_network(dataset, arch, num_classes=10):
         #     net = preact_resnet32_cifar_standard(num_classes=num_classes)
         elif arch == "presnet20":
             net = preact_resnet20_cifar(num_classes=num_classes)
+        elif arch == "vgg-16":
+            net = vgg16_bn(num_classes=num_classes)
         # elif arch == "presnet20-standard":
         #     net = preact_resnet20_cifar_standard(num_classes=num_classes)
         else:
@@ -144,11 +147,12 @@ def tweak_network(net, bit, arch, train_conf, quant_mode, cfg):
                                    arch=arch)
 
         if train_scheme == "condconv" or train_scheme == "condlsqconv":
-            m = net.conv1
-            net.conv1 = nn.Conv2d(in_channels=m.in_channels, 
-                out_channels=m.out_channels, kernel_size=m.kernel_size, 
-                stride=m.stride, padding=m.padding, dilation=m.dilation, 
-                groups=m.groups, bias=(m.bias!=None))
+            pass
+            # m = net.conv1
+            # net.conv1 = nn.Conv2d(in_channels=m.in_channels, 
+            #     out_channels=m.out_channels, kernel_size=m.kernel_size, 
+            #     stride=m.stride, padding=m.padding, dilation=m.dilation, 
+            #     groups=m.groups, bias=(m.bias!=None))
 
     return net
 

@@ -243,6 +243,10 @@ def replace_module(model, replacement_dict={}, exception_dict={}, arch="presnet1
     if arch == "glouncv-mobilenetv2_w1":
         model.features.init_block.conv = replace_single_module(new_cls=exception_dict['__first__'], current_module=model.features.init_block.conv)
         model.output = replace_single_module(new_cls=exception_dict['__last__'], current_module=model.output)
+    if arch == "vgg-16":
+        model.features[0] = replace_single_module(new_cls=exception_dict['__first__'], current_module=model.features[0])
+        model.classifier[-1] = replace_single_module(new_cls=exception_dict['__last__'], current_module=model.classifier[-1])
+
     return model
 
 
