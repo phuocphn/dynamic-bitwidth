@@ -25,6 +25,7 @@ import hydra
 from omegaconf import DictConfig, OmegaConf
 from hydra.utils import get_original_cwd
 from models.cifar_presnet import preact_resnet32_cifar, preact_resnet20_cifar
+from models.cifar_vgg import vgg16_bn
 # from models.cifar100_presnet_standard import preact_resnet32_cifar as preact_resnet32_cifar_standard
 # from models.cifar100_presnet_standard import preact_resnet20_cifar as preact_resnet20_cifar_standard
 
@@ -59,6 +60,8 @@ def setup_network(dataset, arch, num_classes=10, standard_forward=False):
             net = preact_resnet20_cifar(num_classes=num_classes, standard_forward=standard_forward)
         # elif arch == "presnet20-standard":
         #     net = preact_resnet20_cifar_standard(num_classes=num_classes)
+        elif arch == "vgg-16":
+            net = vgg16_bn()
         else:
             raise ValueError("Unsupported")
     return net
@@ -442,6 +445,11 @@ def main(cfg: DictConfig) -> None:
         is_standard_forward = True
     else:
         is_standard_forward = False
+
+
+    if cfg.dataset.name.startswith("vgg"):
+        is_standard_forward = True
+
     net = setup_network(cfg.dataset.name, cfg.dataset.arch, cfg.dataset.num_classes, is_standard_forward)
     net = tweak_network(net,
                         bit=cfg.quantizer.bit,
