@@ -39,7 +39,7 @@ import matplotlib.gridspec as gridspec
 # from quantizer.uniq import UniQQuantizer
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-def setup_network(dataset, arch, num_classes=10, standard_forward=False):
+def setup_network(dataset, arch, num_classes=10):
     print('==> Building model..')
     if dataset == "imagenet":
         models = {
@@ -52,11 +52,11 @@ def setup_network(dataset, arch, num_classes=10, standard_forward=False):
 
     elif dataset == "cifar100" or dataset == "cifar10":
         if arch == "presnet32":
-            net = preact_resnet32_cifar(num_classes=num_classes, standard_forward=standard_forward)
+            net = preact_resnet32_cifar(num_classes=num_classes)
         # elif arch == "presnet32-standard":
         #     net = preact_resnet32_cifar_standard(num_classes=num_classes)
         elif arch == "presnet20":
-            net = preact_resnet20_cifar(num_classes=num_classes, standard_forward=standard_forward)
+            net = preact_resnet20_cifar(num_classes=num_classes)
         # elif arch == "presnet20-standard":
         #     net = preact_resnet20_cifar_standard(num_classes=num_classes)
         else:
@@ -127,7 +127,7 @@ def tweak_network(net, bit, arch, train_conf, quant_mode, cfg):
         if train_scheme == "condlsqconv":
             from quantizer.condlsq import Dynamic_LSQConv2d
             from quantizer.lsq import Conv2dLSQ, InputConv2dLSQ, LinearLSQ
-            
+
             replacement_dict = { nn.Conv2d: partial(Dynamic_LSQConv2d, K=cfg.K, bit=bit)}
             # exception_dict = {}
             exception_dict = {
@@ -442,11 +442,8 @@ def main(cfg: DictConfig) -> None:
         batch_size=cfg.dataset.batch_size,
         data_root=cfg.dataset.data_root)
 
-    if (cfg.quantizer.bit == 32 and cfg.train_conf == "train.fp32") or (cfg.train_conf == "quan.lsq"):
-        is_standard_forward = True
-    else:
-        is_standard_forward = False
-    net = setup_network(cfg.dataset.name, cfg.dataset.arch, cfg.dataset.num_classes, is_standard_forward)
+
+    net = setup_network(cfg.dataset.name, cfg.dataset.arch, cfg.dataset.num_classes)
     net = tweak_network(net,
                         bit=cfg.quantizer.bit,
                         train_conf=cfg.train_conf,

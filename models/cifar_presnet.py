@@ -90,7 +90,7 @@ def conv3x3(in_planes, out_planes, stride=1):
 class PreActBasicBlock(nn.Module):
     expansion = 1
 
-    def __init__(self, inplanes, planes, stride=1, downsample=None, standard_forward=False):
+    def __init__(self, inplanes, planes, stride=1, downsample=None):
         super(PreActBasicBlock, self).__init__()
         self.bn1 = nn.BatchNorm2d(inplanes)
         self.relu = nn.ReLU(inplace=True)
@@ -99,46 +99,24 @@ class PreActBasicBlock(nn.Module):
         self.conv2 = conv3x3(planes, planes)
         self.downsample = downsample
         self.stride = stride
-        self.standard_forward = standard_forward
 
     def forward(self, x):
-        if self.standard_forward:
-            residual = x
-            out = self.bn1(x)
-            out = self.relu(out)
-            
-            if self.downsample is not None:
-                residual = self.downsample(out)
-
-            out = self.conv1(out)
-            out = self.bn2(out)
-            out = self.relu(out)
-            out = self.conv2(out)
-
-            out += residual
-            return out
-
-
         residual = x
         out = self.bn1(x)
         out = self.relu(out)
         
-        raw0 = None
         if self.downsample is not None:
-            # residual, raw0 = self.downsample(out)
-            intermediates = self.downsample(out)
-            if type(intermediates) in (list, tuple):
-                residual, raw0 = intermediates
-            else:
-                residual = intermediates
+            residual = self.downsample(out)
 
-        out, raw1 = self.conv1(out)
+        out = self.conv1(out)
         out = self.bn2(out)
         out = self.relu(out)
-        out, raw2 = self.conv2(out)
+        out = self.conv2(out)
 
         out += residual
-        return out, [raw0, raw1, raw2]
+        return out
+
+
 
 
 # class PreActBottleneck(nn.Module):
@@ -238,11 +216,10 @@ class PreActBasicBlock(nn.Module):
 
 class PreAct_ResNet_Cifar(nn.Module):
 
-    def __init__(self, block, layers, num_classes=10, standard_forward=False):
+    def __init__(self, block, layers, num_classes=10):
         super(PreAct_ResNet_Cifar, self).__init__()
         self.layers = layers
         self.inplanes = 16
-        self.standard_forward = standard_forward
 
         self.conv1 = nn.Conv2d(3, 16, kernel_size=3, stride=1, padding=1, bias=False)
         self.layer1 = self._make_layer(block, 16, layers[0])
@@ -281,68 +258,24 @@ class PreAct_ResNet_Cifar(nn.Module):
             )
 
         layers = []
-        layers.append(block(self.inplanes, planes, stride, downsample, standard_forward=self.standard_forward))
+        layers.append(block(self.inplanes, planes, stride, downsample))
         self.inplanes = planes*block.expansion
         for _ in range(1, blocks):
-            layers.append(block(self.inplanes, planes, standard_forward=self.standard_forward))
+            layers.append(block(self.inplanes, planes))
         return nn.Sequential(*layers)
 
     def forward(self, x):
-        if self.standard_forward:
-            x = self.conv1(x)
-            x = self.layer1(x)
-            x = self.layer2(x)
-            x = self.layer3(x)
-            x = self.bn(x)
-            x = self.relu(x)
-            x = self.avgpool(x)
-            x = x.view(x.size(0), -1)
-            x = self.fc(x)
-
-            return x
-
-
-        # ==============================================
-
         x = self.conv1(x)
-
-        x, raw1 = self.layer1[0](x)
-        x, raw2 = self.layer1[1](x)
-        x, raw3 = self.layer1[2](x)
-
-        if sum(self.layers) == sum([5,5,5]):
-            x, raw4 = self.layer1[3](x)
-            x, raw5 = self.layer1[4](x)
-
-        x, raw6 = self.layer2[0](x)
-        x, raw7 = self.layer2[1](x)
-        x, raw8 = self.layer2[2](x)
-
-        if sum(self.layers) == sum([5,5,5]):
-            x, raw9 = self.layer2[3](x)
-            x, raw10 = self.layer2[4](x)
-
-        x, raw11 = self.layer3[0](x)
-        x, raw12 = self.layer3[1](x)
-        x, raw13 = self.layer3[2](x)
-
-        if sum(self.layers) == sum([5,5,5]):
-            x, raw14 = self.layer3[3](x)
-            x, raw15 = self.layer3[4](x)
-
+        x = self.layer1(x)
+        x = self.layer2(x)
+        x = self.layer3(x)
         x = self.bn(x)
         x = self.relu(x)
         x = self.avgpool(x)
         x = x.view(x.size(0), -1)
         x = self.fc(x)
 
-        
-        if sum(self.layers) == sum([5,5,5]):
-            return x, [*raw1, *raw2, *raw3, *raw4, *raw5, *raw6, *raw7, *raw8, *raw9, *raw10, *raw11, *raw12, *raw13, *raw14, *raw15]
-
-        if sum(self.layers) == sum([3,3,3]):
-            return x, [*raw1, *raw2, *raw3, *raw6, *raw7, *raw8, *raw11, *raw12, *raw13]
-
+        return x
 # def resnet20_cifar(**kwargs):
 #     model = ResNet_Cifar(BasicBlock, [3, 3, 3], **kwargs)
 #     return model
