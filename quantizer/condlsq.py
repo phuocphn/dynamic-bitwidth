@@ -154,7 +154,7 @@ class Dynamic_LSQConv2d(nn.Conv2d):
 
         self.weight = nn.Parameter(torch.randn(K, out_channels, in_channels//groups, kernel_size[0], kernel_size[0]), requires_grad=True)
         if bias:
-            self.bias = nn.Parameter(torch.Tensor(K, out_channels))
+            self.bias = nn.Parameter(torch.zeros(K, out_channels))
         else:
             self.bias = None
         if init_weight:
