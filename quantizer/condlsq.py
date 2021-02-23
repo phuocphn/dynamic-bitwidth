@@ -5,6 +5,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
+from quantizer.lsq import Conv2dLSQ
+
 def grad_scale(x, scale):
     y = x
     y_grad = x * scale
@@ -30,9 +32,9 @@ class attention2d(nn.Module):
             hidden_planes = int(in_channels*ratios)+1
         else:
             hidden_planes = K
-        self.fc1 = nn.Conv2d(in_channels, hidden_planes, 1, bias=False)
+        self.fc1 = Conv2dLSQ(in_channels, hidden_planes, 1, bias=False, bit=8)
         # self.bn = nn.BatchNorm2d(hidden_planes)
-        self.fc2 = nn.Conv2d(hidden_planes, K, 1, bias=True)
+        self.fc2 = Conv2dLSQ(hidden_planes, K, 1, bias=True, bit=8)
         self.temperature = temperature
         if init_weight:
             self._initialize_weights()
