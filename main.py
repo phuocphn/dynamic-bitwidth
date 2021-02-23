@@ -128,10 +128,10 @@ def tweak_network(net, bit, arch, train_conf, quant_mode, cfg):
             from quantizer.condlsq import Dynamic_LSQConv2d
             from quantizer.lsq import Conv2dLSQ, InputConv2dLSQ, LinearLSQ
 
-            replacement_dict = { nn.Conv2d: partial(Dynamic_LSQConv2d, K=cfg.K, bit=bit)}
+            replacement_dict = { nn.Conv2d: partial(Dynamic_LSQConv2d, K=cfg.K, bit=bit, temperature=cfg.temperature)}
             # exception_dict = {}
             exception_dict = {
-                '__first__': partial(Dynamic_LSQConv2d, bit=8),
+                '__first__': partial(InputConv2dLSQ, bit=8),
                 '__last__': partial(LinearLSQ, bit=8),
             }
 
@@ -144,11 +144,12 @@ def tweak_network(net, bit, arch, train_conf, quant_mode, cfg):
                                    arch=arch)
 
         if train_scheme == "condconv" or train_scheme == "condlsqconv":
-            m = net.conv1
-            net.conv1 = nn.Conv2d(in_channels=m.in_channels, 
-                out_channels=m.out_channels, kernel_size=m.kernel_size, 
-                stride=m.stride, padding=m.padding, dilation=m.dilation, 
-                groups=m.groups, bias=(m.bias!=None))
+            pass
+            # m = net.conv1
+            # net.conv1 = nn.Conv2d(in_channels=m.in_channels, 
+            #     out_channels=m.out_channels, kernel_size=m.kernel_size, 
+            #     stride=m.stride, padding=m.padding, dilation=m.dilation, 
+            #     groups=m.groups, bias=(m.bias!=None))
 
     return net
 

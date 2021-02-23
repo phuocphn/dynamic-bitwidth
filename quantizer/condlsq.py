@@ -48,10 +48,13 @@ class attention2d(nn.Module):
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
 
-    def updata_temperature(self):
-        if self.temperature!=1:
-            self.temperature -=3
-            print('Change temperature to:', str(self.temperature))
+    def updata_temperature(self, temperature):
+        self.temperature = temperature
+        print('Change temperature to:', str(self.temperature))
+
+        # if self.temperature!=1:
+        #     self.temperature -=3
+        #     print('Change temperature to:', str(self.temperature))
 
 
     def forward(self, x):
@@ -131,7 +134,7 @@ class WeightAtentionQuantizer(torch.nn.Module):
 
 
 class Dynamic_LSQConv2d(nn.Conv2d):
-    def __init__(self, in_channels, out_channels, kernel_size, ratio=0.25, stride=1, padding=0, dilation=1, groups=1, bias=True, K=4,temperature=34, init_weight=True, bit=2):
+    def __init__(self, in_channels, out_channels, kernel_size, ratio=0.25, stride=1, padding=0, dilation=1, groups=1, bias=True, K=4,temperature=1, init_weight=True, bit=2):
         super(Dynamic_LSQConv2d, self).__init__(in_channels, out_channels, kernel_size, stride, padding, dilation, groups)
         assert in_channels%groups==0
         self.in_channels = in_channels
@@ -142,6 +145,7 @@ class Dynamic_LSQConv2d(nn.Conv2d):
         self.dilation = dilation
         self.groups = groups
         #self.bias = bias
+        self.temperature = temperature
         self.K = K
         self.bit = bit 
         self.attention = attention2d(in_channels, ratio, K, temperature)
@@ -163,7 +167,7 @@ class Dynamic_LSQConv2d(nn.Conv2d):
 
 
     def update_temperature(self):
-        self.attention.updata_temperature()
+        self.attention.updata_temperature(self.temperature)
 
     def forward(self, x):#
         softmax_attention, raw_attention = self.attention(x)
