@@ -26,16 +26,18 @@ class attention2d(nn.Module):
         super(attention2d, self).__init__()
         assert temperature%3==1
         self.avgpool = nn.AdaptiveAvgPool2d(1)
-        if in_channels!=3:
-            hidden_planes = int(in_channels*ratios)+1
-        else:
-            hidden_planes = K
-        self.fc1 = nn.Conv2d(in_channels, hidden_planes, 1, bias=False)
-        # self.bn = nn.BatchNorm2d(hidden_planes)
-        self.fc2 = nn.Conv2d(hidden_planes, K, 1, bias=True)
+        self.fc = nn.Linear(in_channels, K)
+        self.sigmoid = nn.Sigmoid()
+        # if in_channels!=3:
+        #     hidden_planes = int(in_channels*ratios)+1
+        # else:
+        #     hidden_planes = K
+        # self.fc1 = nn.Conv2d(in_channels, hidden_planes, 1, bias=False)
+        # # self.bn = nn.BatchNorm2d(hidden_planes)
+        # self.fc2 = nn.Conv2d(hidden_planes, K, 1, bias=True)
         self.temperature = temperature
-        if init_weight:
-            self._initialize_weights()
+        # if init_weight:
+        #     self._initialize_weights()
 
 
     def _initialize_weights(self):
@@ -48,20 +50,20 @@ class attention2d(nn.Module):
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
 
-    def updata_temperature(self, temperature):
-        # self.temperature = temperature
-        # print('Change temperature to:', str(self.temperature))
-
+    def updata_temperature(self):
         if self.temperature!=1:
             self.temperature -=3
             print('Change temperature to:', str(self.temperature))
 
 
     def forward(self, x):
-        x = self.avgpool(x)
-        x = self.fc1(x)
+        # x = self.sigmoid(self.avgpool(x))
+        # x = self.fc1(x)
         # x = F.relu(x)
-        x = self.fc2(x).view(x.size(0), -1)
+        # x = self.fc2(x).view(x.size(0), -1)
+        x = self.avgpool(x)
+        x = x.view(x.size(0), -1)
+        x = self.sigmoid(self.fc(x))
         return gradient_approximation(x, self.temperature), x
 
 
