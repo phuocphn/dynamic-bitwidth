@@ -128,7 +128,7 @@ def tweak_network(net, bit, arch, train_conf, quant_mode, cfg):
             from quantizer.condlsq import Dynamic_LSQConv2d
             from quantizer.lsq import Conv2dLSQ, InputConv2dLSQ, LinearLSQ
 
-            replacement_dict = { nn.Conv2d: partial(Dynamic_LSQConv2d, K=cfg.K, bit=bit, temperature=cfg.temperature)}
+            replacement_dict = { nn.Conv2d: partial(Dynamic_LSQConv2d, K=cfg.K, bit=bit)}
             # exception_dict = {}
             exception_dict = {
                 '__first__': partial(InputConv2dLSQ, bit=8),
@@ -177,7 +177,7 @@ def load_normal_checkpoint(net, init_from):
         warnings.warn("No checkpoint file is provided !!!")
 
 
-def load_attention_checkpoint(net, init_from):
+def load_attention_checkpoint(net, init_from, K=3):
 
     # Loading checkpoint
     # -----------------------------
@@ -191,7 +191,7 @@ def load_attention_checkpoint(net, init_from):
             if not k.startswith("module."):
                 vnew = v.clone()
                 if v.dim() == 2:
-                    vnew = v.repeat(3,1)
+                    vnew = v.repeat(K,1)
                 if v.dim() == 4:
                     #vnew = v.repeat(3,1,1,1)
                     pass
@@ -200,14 +200,14 @@ def load_attention_checkpoint(net, init_from):
                 vnew = v.clone()
                 if "attention" in k: continue 
                 if vnew.dim() == 2 and "fc" not in k:
-                    vnew = vnew.repeat(3,1)
+                    vnew = vnew.repeat(K,1)
                 if v.dim() == 4:
                     if "attention" in k:
                         #pass
                         continue
                         #vnew = vnew.repeat(10,1,1,1)
                 if v.dim() == 5:
-                    vnew = vnew.repeat(3,1,1,1,1)
+                    vnew = vnew.repeat(K,1,1,1,1)
                 loaded_params[k] = vnew
 
         net_state_dict = net.state_dict()
@@ -335,6 +335,7 @@ def train(net, optimizer, trainloader, criterion, epoch, print_freq=10, cfg=None
 
 
     if hasattr(cfg, 'enable_condconv') and cfg.enable_condconv:
+        # temperature_annealing = getattr(cfg, 'temperature_annealing', True)
         net.module.update_temperature()
     return (train_loss / batch_idx, correct / total)
 
@@ -463,7 +464,7 @@ def main(cfg: DictConfig) -> None:
           "M")
     time.sleep(10)
     if getattr(cfg, 'enable_load_attention_checkpoint', False) == True: 
-        load_attention_checkpoint(net, init_from=cfg.dataset.init_from)
+        load_attention_checkpoint(net, init_from=cfg.dataset.init_from, K=cfg.K)
     else:
         load_normal_checkpoint(net, init_from=cfg.dataset.init_from)
 
