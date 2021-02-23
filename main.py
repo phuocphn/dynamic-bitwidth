@@ -25,6 +25,7 @@ import hydra
 from omegaconf import DictConfig, OmegaConf
 from hydra.utils import get_original_cwd
 from models.cifar_presnet import preact_resnet32_cifar, preact_resnet20_cifar
+from models.cifar_googlenet import googlenet
 # from models.cifar100_presnet_standard import preact_resnet32_cifar as preact_resnet32_cifar_standard
 # from models.cifar100_presnet_standard import preact_resnet20_cifar as preact_resnet20_cifar_standard
 
@@ -57,6 +58,8 @@ def setup_network(dataset, arch, num_classes=10):
         #     net = preact_resnet32_cifar_standard(num_classes=num_classes)
         elif arch == "presnet20":
             net = preact_resnet20_cifar(num_classes=num_classes)
+        elif arch == "googlenet":
+            net = googlenet()
         # elif arch == "presnet20-standard":
         #     net = preact_resnet20_cifar_standard(num_classes=num_classes)
         else:

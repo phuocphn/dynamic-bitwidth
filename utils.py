@@ -189,7 +189,7 @@ def replace_module(model, replacement_dict={}, exception_dict={}, arch="presnet1
         'fc': partial(NIPS2019_QLinear, bit=8)
     }
     """ 
-    assert arch in ["presnet32", "presnet32-standard","presnet20", "presnet20-standard", "presnet18", "glouncv-alexnet", "glouncv-alexnet-bn",  "postech-alexnet", "glouncv-presnet34", "glouncv-presnet50", "glouncv-mobilenetv2_w1"],\
+    assert arch in ["googlenet", "presnet32", "presnet32-standard","presnet20", "presnet20-standard", "presnet18", "glouncv-alexnet", "glouncv-alexnet-bn",  "postech-alexnet", "glouncv-presnet34", "glouncv-presnet50", "glouncv-mobilenetv2_w1"],\
             ("Not support this type of architecture !")
 
     model = replace_all(model, replacement_dict=replacement_dict)
@@ -243,6 +243,11 @@ def replace_module(model, replacement_dict={}, exception_dict={}, arch="presnet1
     if arch == "glouncv-mobilenetv2_w1":
         model.features.init_block.conv = replace_single_module(new_cls=exception_dict['__first__'], current_module=model.features.init_block.conv)
         model.output = replace_single_module(new_cls=exception_dict['__last__'], current_module=model.output)
+
+    if arch == "googlenet":
+        model.prelayer[0] = replace_single_module(new_cls=exception_dict['__first__'], current_module=model.prelayer[0])
+        model.linear = replace_single_module(new_cls=exception_dict['__last__'], current_module=model.linear)
+
     return model
 
 
