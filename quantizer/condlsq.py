@@ -134,7 +134,7 @@ class WeightAtentionQuantizer(torch.nn.Module):
 
 
 class Dynamic_LSQConv2d(nn.Conv2d):
-    def __init__(self, in_channels, out_channels, kernel_size, ratio=0.25, stride=1, padding=0, dilation=1, groups=1, bias=True, K=4,temperature=34, init_weight=True, bit=2):
+    def __init__(self, in_channels, out_channels, kernel_size, ratio=0.25, stride=1, padding=0, dilation=1, groups=1, bias=False, K=4,temperature=34, init_weight=True, bit=2):
         super(Dynamic_LSQConv2d, self).__init__(in_channels, out_channels, kernel_size, stride, padding, dilation, groups)
         assert in_channels%groups==0
         self.in_channels = in_channels
@@ -154,7 +154,7 @@ class Dynamic_LSQConv2d(nn.Conv2d):
 
         self.weight = nn.Parameter(torch.randn(K, out_channels, in_channels//groups, kernel_size[0], kernel_size[0]), requires_grad=True)
         if bias:
-            self.bias = nn.Parameter(torch.Tensor(K, out_channels))
+            self.bias = nn.Parameter(torch.randn(K, out_channels))
         else:
             self.bias = None
         if init_weight:
